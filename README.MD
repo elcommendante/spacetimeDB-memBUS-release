@@ -190,8 +190,6 @@ Matched two-byte, warm, same-host measurements on optimized build `2.6.1 - 5`:
 
 Conditions: 100 warm-up calls, 1,000 measured calls per path, warm processes, benchmark debug observer disabled, and normal Windows scheduling with all available CPUs. All 1,000 measured operations per path committed; the result was repeated across three fresh process runs. These figures describe the documented test host and are not a performance guarantee for every machine.
 
-For the full path P95, MemBus measured 4.662 ms versus HTTP 6.432 ms. These boundaries must not be mixed. The shared-memory transport is already fast; the current v2.6 adapter still resolves database → leader → module on every call.
-
 See [Benchmarks](documentation/benchmarks.md).
 
 ## Documentation
@@ -209,11 +207,27 @@ See [Benchmarks](documentation/benchmarks.md).
 - [Development and verification](documentation/development.md)
 - [Upgrade strategy](documentation/upgrade-guide.md)
 
+## Roadmap — things still to be done
+
+SpacetimeDB-memBUS R2 proves the complete local path from shared-memory publication through destination reducer commit and transaction-aware ACK. Before production use, the project still needs:
+
+- authenticated per-route handshakes and cryptographic frame authentication;
+- explicit Windows SID-based ACLs and secure secret storage/rotation;
+- complete crash, restart, stale-epoch and lost-ACK recovery testing;
+- operation-status reconciliation after `TimedOut` or `Unknown`;
+- validated payload limits beyond the currently accepted 1,024 bytes;
+- real multi-destination fanout testing;
+- Windows Service and Session 0 acceptance;
+- rate limits, security auditing and production diagnostics;
+- long-running soak, P99, throughput and backpressure benchmarks.
+
+The project will remain a focused same-machine shared-memory transport. It will not add automatic HTTP fallback, arbitrary reducer execution, shared database objects, cross-process transactions or unbounded retries.
+
 ## Status and limitations
 
-Verified: frame/ring protocol, strict topology, cross-process Windows mapping/events, private ABI, C# opt-in/stock compatibility, real reducer commit, duplicate suppression, CPU-pinned packaged launch, matched dispatch benchmark, and full transaction-aware ACK timing.
+Verified: frame/ring protocol, strict topology, cross-process Windows mapping/events, private ABI, C# opt-in/stock compatibility, real reducer commit, duplicate suppression, optimized generation-safe destination cache, normal Windows scheduling, matched dispatch benchmark, and full transaction-aware ACK timing.
 
-Not yet accepted: exact crash/restart boundary campaign, Windows Session 0/service ACL behavior, real three-destination fanout, graceful modified-runtime Ctrl+C proof, and final ModuleHost hot-path optimization.
+Not yet accepted: exact crash/restart boundary campaign, Windows Session 0/service ACL behavior, real three-destination fanout, payloads above 1,024 bytes, and security-grade per-route authentication/MAC.
 
 ## License
 

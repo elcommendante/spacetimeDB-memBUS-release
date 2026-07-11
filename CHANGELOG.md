@@ -1,5 +1,11 @@
 # Release changelog
 
+## Roadmap summary — 2026-07-11
+
+- Added a compact production-readiness roadmap to the public README.
+- Recorded the remaining security, recovery, payload, fanout, service-mode and operational acceptance work without expanding memBUS into a general network protocol.
+- Removed stale R1 performance/integration wording from the current R2 README status section.
+
 ## Repository performance preview — 2026-07-11
 
 - Added a repository-tracked PNG of the accepted R2 latency comparison.
