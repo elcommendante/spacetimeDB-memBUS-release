@@ -1,0 +1,78 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1800" height="1040" viewBox="0 0 1800 1040" role="img" aria-labelledby="title desc">
+  <title id="title">My MMORPG project's target multi-database topology using ApiCoordinator and memBUS</title>
+  <desc id="desc">ApiCoordinator orchestrates workflows while memBUS carries approved same-machine messages over independent routes connecting PersistenceDB, two regional GameWorld databases, StatisticsDB, and MarketplaceDB.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto"><path d="M0,0 L12,6 L0,12 Z" fill="#b985ff"/></marker>
+    <marker id="arrowGreen" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto"><path d="M0,0 L12,6 L0,12 Z" fill="#52d69a"/></marker>
+    <style>
+      .bg{fill:#0d1119}.panel{fill:#171d2a;stroke:#4c5870;stroke-width:2}.current{fill:#222a3a;stroke:#b985ff;stroke-width:3}.planned{fill:#1d2431;stroke:#768198;stroke-width:3;stroke-dasharray:12 9}.coord{fill:#302343;stroke:#d8b4fe;stroke-width:3}.bus{fill:#18352e;stroke:#52d69a;stroke-width:3}.title{font:700 34px 'Segoe UI',sans-serif;fill:#f7f8ff}.head{font:600 22px 'Segoe UI',sans-serif;fill:#f7f8ff}.text{font:16px 'Segoe UI',sans-serif;fill:#cbd3e2}.small{font:14px 'Segoe UI',sans-serif;fill:#9ca9bf}.tag{font:600 14px 'Segoe UI',sans-serif;fill:#52d69a}.line{stroke:#b985ff;stroke-width:4;fill:none;marker-start:url(#arrow);marker-end:url(#arrow)}.control{stroke:#52d69a;stroke-width:4;fill:none;marker-end:url(#arrowGreen)}.thin{stroke:#5f6b82;stroke-width:2;fill:none}.legend{font:16px 'Segoe UI',sans-serif;fill:#b8c1d2}
+    </style>
+  </defs>
+  <rect class="bg" width="1800" height="1040"/>
+  <text class="title" x="900" y="52" text-anchor="middle">My MMORPG project — target ApiCoordinator + memBUS database topology</text>
+  <text class="small" x="900" y="82" text-anchor="middle">Workflow orchestration remains explicit; each line below represents an approved independent route.</text>
+
+  <rect class="panel" x="70" y="110" width="1660" height="165" rx="24"/>
+  <rect class="coord" x="570" y="135" width="660" height="115" rx="18"/>
+  <text class="head" x="900" y="178" text-anchor="middle">ApiCoordinator</text>
+  <text class="text" x="900" y="208" text-anchor="middle">OperationId • saga order • recovery • error mapping • workflow completion</text>
+  <text class="tag" x="900" y="235" text-anchor="middle">CURRENT ORCHESTRATOR • TARGET memBUS INTEGRATION</text>
+
+  <path class="control" d="M900 250 L900 325"/>
+  <rect class="bus" x="250" y="325" width="1300" height="125" rx="22"/>
+  <text class="head" x="900" y="368" text-anchor="middle">memBUS — same-machine shared-memory transport</text>
+  <text class="text" x="900" y="400" text-anchor="middle">bounded SPSC routes • topology/identity/schema/allowlist • commit-aware ACK • no network fallback</text>
+  <text class="small" x="900" y="429" text-anchor="middle">The visual rail is conceptual: implementation uses separate request/response rings per directed route.</text>
+
+  <path class="line" d="M210 450 L210 585"/>
+  <path class="line" d="M550 450 L550 585"/>
+  <path class="line" d="M890 450 L890 585"/>
+  <path class="line" d="M1230 450 L1230 585"/>
+  <path class="line" d="M1570 450 L1570 585"/>
+
+  <rect class="current" x="50" y="585" width="320" height="245" rx="20"/>
+  <text class="head" x="210" y="630" text-anchor="middle">PersistenceDB</text>
+  <text class="tag" x="210" y="659" text-anchor="middle">DURABLE AUTHORITY</text>
+  <text class="text" x="210" y="700" text-anchor="middle">Characters • inventory • equipment</text>
+  <text class="text" x="210" y="730" text-anchor="middle">progression • assignments</text>
+  <text class="small" x="210" y="775" text-anchor="middle">Sends thin equipment/stat projection</text>
+  <text class="small" x="210" y="802" text-anchor="middle">Receives progression checkpoints</text>
+
+  <rect class="current" x="390" y="585" width="320" height="245" rx="20"/>
+  <text class="head" x="550" y="630" text-anchor="middle">GameWorldRegionDB-1</text>
+  <text class="tag" x="550" y="659" text-anchor="middle">ACTIVE LIVE REGION</text>
+  <text class="text" x="550" y="700" text-anchor="middle">Movement • combat • AI</text>
+  <text class="text" x="550" y="730" text-anchor="middle">live stats • loot • regional state</text>
+  <text class="small" x="550" y="775" text-anchor="middle">Consumes validated gameplay projection</text>
+  <text class="small" x="550" y="802" text-anchor="middle">Emits progression and loot operations</text>
+
+  <rect class="planned" x="730" y="585" width="320" height="245" rx="20"/>
+  <text class="head" x="890" y="630" text-anchor="middle">GameWorldRegionDB-2</text>
+  <text class="small" x="890" y="659" text-anchor="middle">SCAFFOLD / FUTURE REGION</text>
+  <text class="text" x="890" y="700" text-anchor="middle">World-to-world transfer target</text>
+  <text class="text" x="890" y="730" text-anchor="middle">independent live authority</text>
+  <text class="small" x="890" y="775" text-anchor="middle">Requires assignment, content, bindings</text>
+  <text class="small" x="890" y="802" text-anchor="middle">and idempotent transfer workflow</text>
+
+  <rect class="planned" x="1070" y="585" width="320" height="245" rx="20"/>
+  <text class="head" x="1230" y="630" text-anchor="middle">StatisticsDB</text>
+  <text class="small" x="1230" y="659" text-anchor="middle">EVENT-SINK SCAFFOLD</text>
+  <text class="text" x="1230" y="700" text-anchor="middle">Server-authored events</text>
+  <text class="text" x="1230" y="730" text-anchor="middle">analytics • rankings • audit facts</text>
+  <text class="small" x="1230" y="775" text-anchor="middle">Receives compact committed events</text>
+
+  <rect class="planned" x="1410" y="585" width="320" height="245" rx="20"/>
+  <text class="head" x="1570" y="630" text-anchor="middle">MarketplaceDB</text>
+  <text class="small" x="1570" y="659" text-anchor="middle">PLANNED</text>
+  <text class="text" x="1570" y="700" text-anchor="middle">Listings • orders • settlement</text>
+  <text class="text" x="1570" y="730" text-anchor="middle">market history • reconciliation</text>
+  <text class="small" x="1570" y="775" text-anchor="middle">Separate durable market authority</text>
+
+  <path class="thin" d="M210 860 L550 860"/><text class="small" x="380" y="892" text-anchor="middle">equipment/stats → • ← checkpoint/loot</text>
+  <path class="thin" d="M550 925 L890 925"/><text class="small" x="720" y="957" text-anchor="middle">future region transfer saga</text>
+  <path class="thin" d="M1230 860 L1570 860"/><text class="small" x="1400" y="892" text-anchor="middle">server events and settlement facts</text>
+
+  <rect class="current" x="530" y="985" width="36" height="20" rx="4"/><text class="legend" x="580" y="1001">current responsibility</text>
+  <rect class="planned" x="850" y="985" width="36" height="20" rx="4"/><text class="legend" x="900" y="1001">scaffold / planned</text>
+  <text class="legend" x="1180" y="1001">Target architecture — not current production memBUS wiring</text>
+</svg>
