@@ -1,0 +1,86 @@
+# My MMORPG project use case
+
+SpacetimeDB-memBUS is being developed for my MMORPG project's same-machine, multi-database shard.
+
+## Database ownership
+
+| Database | Responsibility | Current state |
+|---|---|---|
+| `PersistenceDB` | Durable accounts, characters, canonical inventory/equipment, durable progression and authority assignment | Active |
+| `GameWorldRegionDB-1` | Live regional presence, movement, combat, AI, loot sources and gameplay projections | Active (`GameWorldDB_1`) |
+| `GameWorldRegionDB-2` | Second live region and future world-to-world transfer destination | Scaffold/planned |
+| `StatisticsDB` | Server-authored event sink and analytics/ranking facts | Scaffold/event sink |
+| `MarketplaceDB` | Future listings, orders, settlement and market history | Planned |
+
+Canonical inventory must not be copied blindly into every region. Persistence owns the durable rows. A GameWorld receives a narrow operation-scoped projection containing only what live gameplay needs, such as equipped item definitions, quantities or charges, combat-relevant stats, equipment revision, authority epoch, and source assignment.
+
+## Example: entering a region
+
+```text
+ApiCoordinator creates/reuses EnterWorld OperationId
+→ PersistenceDB validates character and durable assignment
+→ PersistenceDB stages a thin equipment/stat projection
+→ memBUS calls the approved GameWorldRegionDB reducer
+→ GameWorld validates source identity, revision and payload hash
+→ GameWorld atomically creates live regional state
+→ destination transaction commits
+→ commit-aware ACK returns
+→ ApiCoordinator/Persistence finalize the operation
+```
+
+No table or transaction is shared. The projection is serialized command data and the destination creates its own local rows through a normal reducer.
+
+## Example: progression checkpoint
+
+GameWorld owns live progression during an active session. Dirty revisions are coalesced into an immutable checkpoint. memBUS can carry that checkpoint to an approved Persistence reducer, which validates source database, authority epoch, revision and payload hash before durable apply and ACK.
+
+Leave-world and recall must complete the final checkpoint barrier before source cleanup.
+
+## Example: item or loot transfer
+
+```text
+source reserves/locks item or loot and commits outbox
+→ memBUS sends an OperationId-based command
+→ destination checks inbox + payload hash + ownership/content rules
+→ destination mutates its own tables and commits
+→ ACK returns
+→ source finalizes or reconciles
+```
+
+The source does not delete canonical state before destination commit. A timeout is uncertainty: inspect the destination inbox, then retry with the same OperationId and payload if absent.
+
+## ApiCoordinator remains the orchestrator
+
+memBUS is not a distributed transaction manager. ApiCoordinator still owns multi-step workflow order, recovery, error mapping, source/destination completion, and StatisticsDB emission.
+
+Target separation:
+
+| Layer | Responsibility |
+|---|---|
+| ApiCoordinator | Decide and recover the saga/workflow |
+| memBUS | Carry approved same-machine commands/events/ACKs with low transport overhead |
+| Source reducer/procedure | Validate authority, reserve state, write outbox |
+| Destination reducer | Authenticate caller, apply inbox/idempotency, mutate and commit |
+| OperationId | Correlate retries and reconciliation across all steps |
+
+The current ApiCoordinator in my MMORPG project uses SDK/HTTP callback paths. Planned integration will route selected high-frequency or latency-sensitive database hops through memBUS while preserving existing operation contracts. It will not silently fall back to the old path when a memBUS route fails.
+
+## Why shared memory helps
+
+For colocated trusted processes, memBUS avoids extra loopback socket, HTTP routing, request parsing, and callback-pump layers. It uses a bounded binary SPSC route, atomics, CRC32C, and Windows events.
+
+Security is narrower because the bus adds no public network listener and named objects are protected for the current Windows user. Safety still comes from layered checks: topology, endpoint/database identity, schema, epoch, sequence, reducer allowlist, destination `ctx.sender`, inbox idempotency, and the normal SpacetimeDB transaction path.
+
+## Planned topology
+
+See [`MMORPG_MEMBUS_TOPOLOGY.svg`](../MMORPG_MEMBUS_TOPOLOGY.svg). Solid nodes are current project responsibilities; dashed nodes are scaffold/planned. Lines represent logical independent memBUS routes, not one unsafe shared multi-writer queue.
+
+## Performance evidence
+
+The [printable benchmark chart](../2.6.1-1/db-membus-benchmark-chart.html) shows both accepted boundaries:
+
+- transport to destination dispatch: memBUS P50 `0.040 ms`, HTTP P50 `0.722 ms`;
+- full mutation/commit/ACK: memBUS P50 `3.670 ms`, HTTP P50 `2.761 ms`;
+- full-path P95: memBUS `4.662 ms`, HTTP `6.432 ms`.
+
+The next optimization targets repeated destination database/leader/module resolution. Transport-only and full-transaction claims must remain separate.
