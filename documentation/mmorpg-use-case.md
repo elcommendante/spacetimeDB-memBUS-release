@@ -77,10 +77,10 @@ See [`MMORPG_MEMBUS_TOPOLOGY.svg`](../MMORPG_MEMBUS_TOPOLOGY.svg). Solid nodes a
 
 ## Performance evidence
 
-The [printable benchmark chart](../2.6.1-1/db-membus-benchmark-chart.html) shows both accepted boundaries:
+The [printable benchmark chart](db-membus-benchmark-chart.html) shows both accepted boundaries:
 
-- transport to destination dispatch: memBUS P50 `0.040 ms`, HTTP P50 `0.722 ms`;
-- full mutation/commit/ACK: memBUS P50 `3.670 ms`, HTTP P50 `2.761 ms`;
+- transport to destination dispatch: memBUS P50/P95 `0.0206/0.0348 ms`, persistent local HTTP `0.2885/0.3738 ms`;
+- full mutation/commit/ACK: memBUS P50/P95 `0.2931/0.4301 ms`, persistent local HTTP `0.6558/0.8629 ms`;
 - full-path P95: memBUS `4.662 ms`, HTTP `6.432 ms`.
 
 The next optimization targets repeated destination database/leader/module resolution. Transport-only and full-transaction claims must remain separate.

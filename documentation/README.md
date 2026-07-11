@@ -23,6 +23,6 @@
 
 ## Current package
 
-Release [`2.6.1-1`](../2.6.1-1/) contains the two endpoint packages, annotated configuration template, flow SVG, and SHA-256 manifests.
+Release [`2.6.1-R2`](../2.6.1-R2/) contains the two endpoint packages, annotated configuration template, flow SVG, and SHA-256 manifests.
 
-Documentation uses verified behavior from SpacetimeDB v2.6.1 and memBUS build `2.6.1 - 4`. Planned behavior is labelled explicitly and must not be treated as implemented.
+Documentation uses verified behavior from SpacetimeDB v2.6.1 and optimized memBUS build `2.6.1 - 5`, packaged as `2.6.1-R2`. Planned behavior is labelled explicitly and must not be treated as implemented.

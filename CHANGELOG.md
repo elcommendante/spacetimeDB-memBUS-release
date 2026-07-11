@@ -1,5 +1,28 @@
 # Release changelog
 
+## Repository performance preview — 2026-07-11
+
+- Added a repository-tracked PNG of the accepted R2 latency comparison.
+- Embedded the chart near the top of `README.MD` with the exact P50 multipliers, benchmark conditions and a non-guarantee qualification.
+- Kept the R2 ZIP unchanged because this is a repository presentation asset, not a binary-package behavior change.
+
+## 2.6.1-R2 — 2026-07-11
+
+Optimized SpacetimeDB-memBUS Windows x64 proof-of-concept release based on SpacetimeDB v2.6.1.
+
+- Replaced both standalone executables with accepted build `2.6.1 - 5` (`SHA-256 14F10E81E4B8D9FD2927C1C397CBCEE65FAC6EC057C1B694CE0CB4A0AC4591C7`).
+- Added bounded nonblocking admission, one absolute request deadline, late-ACK capacity reconciliation, and a prewarmed generation-safe destination host cache.
+- Removed redundant hot-path decoding/allocation while preserving explicit topology, reducer allowlists, authorization, idempotency, normal reducer execution, transaction commit and typed ACK semantics.
+- Updated the bundled benchmark chart and public documentation with the final matched 100-warm-up/1,000-measured campaign.
+- Published the same chart under `documentation/` so it renders from the repository even though local package assemblies and `dist/` assets remain ignored.
+- Measured memBUS at `0.0206 / 0.0348 ms` P50/P95 transport and `0.2931 / 0.4301 ms` full commit+ACK.
+- Measured persistent local HTTP at `0.2885 / 0.3738 ms` P50/P95 transport and `0.6558 / 0.8629 ms` full commit+response.
+- Disabled process-wide one-core affinity by default because it materially worsened P95; explicit `-CpuIndex` experiments remain available.
+- Retained the verified clean seeds, bundled matching CLI, PowerShell-only launch/test flow, manifests and release-local paths.
+- Added a prominent production-licensing notice: the SpacetimeDB 2.6.1 Additional Use Grant covers no more than one production instance, while the intended memBUS topology uses multiple independent instances.
+
+Known limitations remain: Windows x64/same-session only, at-least-once rather than exactly-once, committed ACK is not an fsync claim, Session 0 and real fanout are not accepted, and the demonstration C# fixture is accepted through 1,024-byte payloads but not 2,048/3,000 bytes.
+
 ## PowerShell-only launch and black console — 2026-07-11
 
 - Removed both temporary CMD wrappers from the release and ZIP.

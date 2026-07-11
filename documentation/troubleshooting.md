@@ -16,15 +16,15 @@ Stop the intended old process or deliberately change the endpoint profile. Do no
 
 ## Bundled CLI missing
 
-Restore `2.6.1-1/tools/spacetimedb-cli.exe` from the release and validate the release manifest. The sample does not search `PATH`.
+Restore `2.6.1-R2/tools/spacetimedb-cli.exe` from the release and validate the release manifest. The sample does not search `PATH`.
 
 ```powershell
-& .\2.6.1-1\tools\spacetimedb-cli.exe --version
+& .\2.6.1-R2\tools\spacetimedb-cli.exe --version
 ```
 
 ## Release-local key directory
 
-The starters create `2.6.1-1/run/jwt-keys/`; standalone generates the key pair. Use `Start-Demo.ps1` on the first run so beta starts immediately after key generation and within the route handshake timeout. Never commit or distribute the generated private key.
+The starters create `2.6.1-R2/run/jwt-keys/`; standalone generates the key pair. Use `Start-Demo.ps1` on the first run so beta starts immediately after key generation and within the route handshake timeout. Never commit or distribute the generated private key.
 
 ## Principal database missing
 
@@ -35,17 +35,17 @@ The topology identity must exist in the endpoint's restored `data/`. Verify the 
 Compare both `topology.toml` hashes and logical values. Confirm endpoint profile name, database identity, channel schema, reducer allowlist, Windows user, and logon session.
 
 ```powershell
-Get-FileHash .\2.6.1-1\alpha\topology.toml
-Get-FileHash .\2.6.1-1\beta\topology.toml
+Get-FileHash .\2.6.1-R2\alpha\topology.toml
+Get-FileHash .\2.6.1-R2\beta\topology.toml
 ```
 
 ## Stale named object / already exists
 
 Ensure no old endpoint process retains handles. memBUS intentionally refuses to reset an existing mapping. Stop the coordinated pair and restart cleanly; do not delete arbitrary Windows objects while a process may own them.
 
-## CPU affinity failed
+## Explicit CPU affinity failed
 
-Check `[Environment]::ProcessorCount` and use a valid zero-based index. The starter stops the process if affinity cannot be applied.
+R2 does not apply affinity by default. If you supplied `-CpuIndex`, check `[Environment]::ProcessorCount` and use a valid zero-based index. The starter stops the process if an explicitly requested affinity cannot be applied.
 
 ## `WOULD_BLOCK_TRANSACTION`
 

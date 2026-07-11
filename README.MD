@@ -4,7 +4,15 @@ SpacetimeDB-memBUS is an experimental, MOD-like extension for SpacetimeDB that l
 
 It is not a second database engine and it does not share tables, transactions, pointers, or `RelationalDB` objects between processes. Shared memory is transport only. Destination work still enters the normal SpacetimeDB `ModuleHost`, reducer executor, transaction, commit, durability, and subscription path.
 
-> Current release: [`2.6.1-1`](2.6.1-1/) — Windows x64, based on SpacetimeDB v2.6.1.
+> Current release: [`2.6.1-R2`](2.6.1-R2/) — Windows x64, based on SpacetimeDB v2.6.1.
+
+> **Production licensing notice:** SpacetimeDB 2.6.1 is distributed under the Business Source License 1.1. Its Additional Use Grant permits an application or service to use no more than **one SpacetimeDB instance in production** and excludes use as a Database Service. SpacetimeDB-memBUS is designed to connect multiple independent SpacetimeDB process instances, so deploying its multi-instance topology in production requires a commercial licence or another applicable arrangement from Clockwork Laboratories. Review the bundled [`LICENSE.txt`](LICENSE.txt), the [upstream SpacetimeDB licence](https://github.com/clockworklabs/SpacetimeDB/blob/v2.6.1/LICENSE.txt), and obtain qualified legal advice for your use case. Development and non-production evaluation are still subject to the full licence terms.
+
+## R2 performance preview
+
+![SpacetimeDB-memBUS R2 latency comparison](documentation/assets/spacetimedb-membus-r2-latency-comparison.png)
+
+On the documented warm same-machine benchmark, memBUS reached `0.0206 ms` transport P50 and `0.2931 ms` full committed-operation P50. That is `14.00x` faster than persistent local HTTP for the matched transport boundary and `2.24x` faster for the complete mutation, commit and ACK/response boundary. The campaign used 100 warm-up calls and 1,000 measured calls per path, with normal Windows scheduling and benchmark debug observation disabled. These are proof-of-concept measurements from the documented test host, not universal performance guarantees. See the [benchmark methodology and interpretation](documentation/benchmarks.md).
 
 ## Why it exists
 
@@ -29,7 +37,7 @@ PersistenceDB
 
 For trusted processes on one machine, named shared memory removes the socket, HTTP routing, text framing, and network callback layers from the database-to-database hot path. The bus itself opens no public network listener. Current-user Windows ACLs, explicit topology, database identities, schemas, process epochs, reducer allowlists, sequence validation, CRC32C, destination authorization, and normal reducer transactions remain mandatory. That makes the intended path both faster and more tightly scoped than exposing another general network endpoint; it does **not** make validation or idempotency optional.
 
-The measured transport-to-dispatch P50 is `0.040 ms` for memBUS versus `0.722 ms` for persistent local HTTP. Full transaction results have a different boundary and are documented honestly. Open the [printable latency comparison](2.6.1-1/db-membus-benchmark-chart.html) or read [Benchmarks](documentation/benchmarks.md).
+The R2 transport-to-dispatch P50 is `0.0206 ms` for memBUS versus `0.2885 ms` for persistent local HTTP. The full committed operation is also faster in the accepted R2 benchmark. Open the [printable latency comparison](documentation/db-membus-benchmark-chart.html) or read [Benchmarks](documentation/benchmarks.md).
 
 Read [The MMORPG project use case](documentation/mmorpg-use-case.md) for ownership, item/equipment transfer, regional gameplay, ApiCoordinator responsibilities, and the planned rollout.
 
@@ -67,9 +75,9 @@ For the ready-to-run ZIP distribution, extract it first and follow `INSTRUCTION.
 The sample release contains two complete endpoint packages:
 
 ```text
-2.6.1-1/
-├── alpha/  # source, port 3910, logical CPU 0
-├── beta/   # destination, port 3920, logical CPU 1
+2.6.1-R2/
+├── alpha/  # source, port 3910, normal Windows scheduling
+├── beta/   # destination, port 3920, normal Windows scheduling
 ├── seed/   # verified clean database seeds restored on first start
 └── tools/  # matching bundled SpacetimeDB CLI
 ```
@@ -77,7 +85,7 @@ The sample release contains two complete endpoint packages:
 The recommended launcher opens both endpoint consoles in the required handshake window:
 
 ```powershell
-Set-Location .\2.6.1-1
+Set-Location .\2.6.1-R2
 .\Start-Demo.ps1
 ```
 
@@ -87,20 +95,20 @@ Manual two-window startup remains available:
 
 ```powershell
 # Window 1
-Set-Location .\2.6.1-1\alpha
+Set-Location .\2.6.1-R2\alpha
 .\Start-Alpha.ps1
 ```
 
 ```powershell
 # Window 2
-Set-Location .\2.6.1-1\beta
+Set-Location .\2.6.1-R2\beta
 .\Start-Beta.ps1
 ```
 
 Then run the committed MemBus example:
 
 ```powershell
-.\2.6.1-1\alpha\Send-MemBusSample.ps1
+.\2.6.1-R2\alpha\Send-MemBusSample.ps1
 ```
 
 Expected result:
@@ -135,7 +143,7 @@ An external client first triggers the source procedure on `alpha` through the no
 $alpha = 'c200c612cf22f9e2b7881c82cf55edd0734b1c95137c1e2616863dcf3672d926'
 $operationId = [guid]::NewGuid().ToString('N')
 
-& .\2.6.1-1\tools\spacetimedb-cli.exe call --anonymous -s http://127.0.0.1:3910 --no-config `
+& .\2.6.1-R2\tools\spacetimedb-cli.exe call --anonymous -s http://127.0.0.1:3910 --no-config `
     $alpha `
     membus_send_critical `
     beta `
@@ -163,6 +171,8 @@ There is no command that enables arbitrary reducer execution. A target, channel,
 
 See the [complete command reference](documentation/commands.md).
 
+See [Licensing and production deployment](documentation/licensing.md) before planning a production topology.
+
 ## Delivery contract
 
 Initial delivery is **at least once**, not exactly once. A stable 128-bit `OperationId` follows the request. The destination reducer owns an inbox row keyed by that ID and rejects payload-hash conflicts.
@@ -171,12 +181,14 @@ Initial delivery is **at least once**, not exactly once. A stable 128-bit `Opera
 
 ## Performance status
 
-Matched two-byte, warm, same-host measurements on build `2.6.1 - 4`:
+Matched two-byte, warm, same-host measurements on optimized build `2.6.1 - 5`:
 
-| Boundary | MemBus P50 | HTTP P50 | Result |
+| Boundary | memBUS P50 / P95 | Persistent local HTTP P50 / P95 | Result |
 |---|---:|---:|---|
-| Publication/send to destination dispatch | 0.040 ms | 0.722 ms | MemBus 18.05x faster |
-| Full mutation + commit + response/ACK | 3.670 ms | 2.761 ms | HTTP 1.33x faster at P50 |
+| Symmetric pre-send QPC to destination dispatch QPC | 0.0206 / 0.0348 ms | 0.2885 / 0.3738 ms | memBUS 14.00x / 10.74x faster |
+| Pre-send to committed response/ACK correlation | 0.2931 / 0.4301 ms | 0.6558 / 0.8629 ms | memBUS 2.24x / 2.01x faster |
+
+Conditions: 100 warm-up calls, 1,000 measured calls per path, warm processes, benchmark debug observer disabled, and normal Windows scheduling with all available CPUs. All 1,000 measured operations per path committed; the result was repeated across three fresh process runs. These figures describe the documented test host and are not a performance guarantee for every machine.
 
 For the full path P95, MemBus measured 4.662 ms versus HTTP 6.432 ms. These boundaries must not be mixed. The shared-memory transport is already fast; the current v2.6 adapter still resolves database → leader → module on every call.
 

@@ -1,0 +1,390 @@
+<meta charset="utf-8">
+<title>SpacetimeDB-memBUS — Latency Comparison</title>
+<style>
+  @page { size: A4 landscape; margin: 8mm; }
+
+  :root{
+    --bg:        #0a0e17;
+    --panel:     #111827;
+    --panel-2:   #0d1320;
+    --grid:      #26304a;
+    --axis:      #4b5872;
+    --ink:       #e8edf7;
+    --ink-dim:   #9aa7c2;
+    --p50:       #8b5cf6;  /* purple  */
+    --p95:       #c4b5fd;  /* lighter purple */
+    --accent:    #a78bfa;
+    --good:      #34d399;
+    --plot-h:    290px;
+  }
+
+  *{ box-sizing:border-box; margin:0; padding:0; }
+
+  html,body{
+    background:var(--bg);
+    color:var(--ink);
+    font-family:"Segoe UI", "Inter", system-ui, -apple-system, sans-serif;
+    -webkit-print-color-adjust:exact;
+    print-color-adjust:exact;
+  }
+
+  .sheet{
+    width:281mm;
+    max-width:100%;
+    margin:0 auto;
+    padding:6mm 7mm;
+  }
+
+  /* ---------- header ---------- */
+  header{
+    display:flex;
+    align-items:flex-end;
+    justify-content:space-between;
+    border-bottom:2px solid var(--accent);
+    padding-bottom:6px;
+    margin-bottom:10px;
+  }
+  .brand{
+    font-size:12px;
+    font-weight:700;
+    letter-spacing:2px;
+    text-transform:uppercase;
+    color:var(--accent);
+    margin-bottom:3px;
+  }
+  h1{
+    font-size:24px;
+    font-weight:700;
+    letter-spacing:.3px;
+  }
+  h1 .unit{ color:var(--accent); }
+  .subtitle{ font-size:12px; color:var(--ink-dim); margin-top:2px; }
+  .meta{ text-align:right; font-size:11px; color:var(--ink-dim); line-height:1.5; }
+  .meta b{ color:var(--ink); }
+
+  /* ---------- legend ---------- */
+  .legend{
+    display:flex;
+    gap:22px;
+    align-items:center;
+    font-size:12px;
+    margin:8px 0 4px;
+  }
+  .legend .swatch{
+    display:inline-block;
+    width:14px; height:14px;
+    border-radius:3px;
+    margin-right:6px;
+    vertical-align:-2px;
+  }
+  .legend .sw-p50{ background:var(--p50); }
+  .legend .sw-p95{ background:var(--p95); }
+  .legend .note{ margin-left:auto; color:var(--ink-dim); }
+
+  /* ---------- charts layout ---------- */
+  .charts{
+    display:grid;
+    grid-template-columns:0.9fr 1.6fr;
+    gap:14px;
+    margin-top:6px;
+  }
+  .card{
+    background:linear-gradient(180deg,var(--panel),var(--panel-2));
+    border:1px solid var(--grid);
+    border-radius:10px;
+    padding:12px 14px 10px;
+  }
+  .card h2{
+    font-size:14px;
+    font-weight:600;
+    margin-bottom:2px;
+  }
+  .card .scope{ font-size:11px; color:var(--ink-dim); margin-bottom:14px; }
+
+  /* ---------- plot ---------- */
+  .plot{
+    position:relative;
+    height:var(--plot-h);
+    margin-left:44px;      /* room for y axis labels */
+    border-left:1.5px solid var(--axis);
+    border-bottom:1.5px solid var(--axis);
+  }
+  .ylabel{
+    position:absolute;
+    left:-40px;
+    top:50%;
+    transform:rotate(-90deg) translateX(50%);
+    transform-origin:left center;
+    white-space:nowrap;
+    font-size:11px;
+    color:var(--ink-dim);
+    letter-spacing:.5px;
+  }
+  .gridline{
+    position:absolute;
+    left:0; right:0;
+    border-top:1px dashed var(--grid);
+  }
+  .gridline span{
+    position:absolute;
+    left:-42px;
+    top:-8px;
+    width:36px;
+    text-align:right;
+    font-size:10px;
+    color:var(--ink-dim);
+  }
+
+  /* groups sit on the baseline */
+  .groups{
+    position:absolute;
+    left:0; right:0; bottom:0;
+    height:100%;
+    display:flex;
+    align-items:flex-end;
+    justify-content:space-around;
+    padding:0 4px;
+  }
+  .group{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    flex:1;
+    height:100%;
+    justify-content:flex-end;
+  }
+  .bars{
+    display:flex;
+    align-items:flex-end;
+    gap:6px;
+    height:100%;
+  }
+  .bar{
+    width:26px;
+    border-radius:4px 4px 0 0;
+    position:relative;
+    min-height:2px;
+    box-shadow:0 0 0 1px rgba(255,255,255,.05) inset;
+  }
+  .bar.p50{ background:linear-gradient(180deg,var(--p50),#6d3fe0); }
+  .bar.p95{ background:linear-gradient(180deg,var(--p95),#a78bfa); }
+  .bar .val{
+    position:absolute;
+    top:-16px;
+    left:50%;
+    transform:translateX(-50%);
+    font-size:10px;
+    font-weight:600;
+    color:var(--ink);
+    white-space:nowrap;
+  }
+  .bar.p95 .val{ color:var(--p95); }
+
+  /* ---------- x axis labels (own row, no overlap) ---------- */
+  .xaxis{
+    display:flex;
+    margin-left:44px;
+    padding:6px 4px 0;
+  }
+  .xlabel{
+    flex:1;
+    text-align:center;
+    padding:0 3px;
+    font-size:10px;
+    line-height:1.3;
+    color:var(--ink-dim);
+    word-break:break-word;
+  }
+  .xlabel strong{
+    display:block;
+    font-size:11px;
+    font-weight:600;
+    color:var(--ink);
+    margin-bottom:1px;
+  }
+
+  /* ---------- callouts ---------- */
+  .callouts{
+    display:flex;
+    gap:12px;
+    margin-top:14px;
+  }
+  .callout{
+    flex:1;
+    border-radius:9px;
+    padding:12px 16px;
+    font-size:12px;
+    line-height:1.55;
+    border:1px solid var(--grid);
+    background:var(--panel-2);
+  }
+  .callout.speed{
+    border-color:var(--accent);
+    background:linear-gradient(180deg,rgba(139,92,246,.14),rgba(139,92,246,.04));
+  }
+  .callout .big{
+    font-size:20px;
+    font-weight:800;
+    color:var(--accent);
+    letter-spacing:.3px;
+  }
+  .callout .tag{
+    font-size:10px;
+    text-transform:uppercase;
+    letter-spacing:1px;
+    color:var(--ink-dim);
+    display:block;
+    margin-bottom:5px;
+  }
+  .callout .row{
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px 14px;
+    align-items:center;
+    margin:4px 0;
+  }
+  .pill{
+    display:inline-block;
+    padding:2px 9px;
+    border-radius:20px;
+    font-weight:700;
+    font-size:11px;
+    white-space:nowrap;
+  }
+  .pill.http{ background:rgba(196,181,253,.16); color:var(--p95); }
+  .pill.mem{ background:rgba(52,211,153,.16); color:var(--good); }
+
+  footer{
+    margin-top:12px;
+    font-size:10px;
+    color:var(--ink-dim);
+    text-align:center;
+    border-top:1px solid var(--grid);
+    padding-top:6px;
+  }
+</style>
+
+<div class="sheet">
+
+  <header>
+    <div>
+      <h1>SpacetimeDB-memBUS <span class="unit">— Latency Comparison</span></h1>
+      <div class="subtitle">P50 vs P95 latency — all values in milliseconds (ms)</div>
+    </div>
+    <div class="meta">
+      <div>Benchmark date: <b>July 11, 2026</b></div>
+      <div>Warm-up: <b>100</b> · Measured: <b>1,000 calls/path</b></div>
+      <div>Scale: linear · Unit: <b>ms</b></div>
+    </div>
+  </header>
+
+  <div class="legend">
+    <span><span class="swatch sw-p50"></span>P50 latency (ms)</span>
+    <span><span class="swatch sw-p95"></span>P95 latency (ms)</span>
+    <span class="note">Two separate charts — transport and full-path values use different scales.</span>
+  </div>
+
+  <div class="charts">
+
+    <!-- ============ CHART 1 : transport to dispatch ============ -->
+    <section class="card">
+      <h2>1 · Transport → dispatch only</h2>
+      <div class="scope">Symmetric prepared pre-send QPC → destination dispatch QPC. Axis 0 – 0.5 ms.</div>
+
+      <div class="plot">
+        <div class="ylabel">Latency (ms)</div>
+
+        <!-- gridlines: max 0.5, step 0.1 -->
+        <div class="gridline" style="bottom:0%"><span>0.0</span></div>
+        <div class="gridline" style="bottom:20%"><span>0.1</span></div>
+        <div class="gridline" style="bottom:40%"><span>0.2</span></div>
+        <div class="gridline" style="bottom:60%"><span>0.3</span></div>
+        <div class="gridline" style="bottom:80%"><span>0.4</span></div>
+        <div class="gridline" style="bottom:100%"><span>0.5</span></div>
+
+        <div class="groups">
+          <!-- final binary confirmation: final-confirmation/summary.json -->
+          <div class="group">
+            <div class="bars">
+              <div class="bar p50" style="height:12px"><span class="val">0.0206</span></div>
+              <div class="bar p95" style="height:20px"><span class="val">0.0348</span></div>
+            </div>
+          </div>
+          <div class="group">
+            <div class="bars">
+              <div class="bar p50" style="height:167px"><span class="val">0.2885</span></div>
+              <div class="bar p95" style="height:217px"><span class="val">0.3738</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="xaxis">
+        <div class="xlabel"><strong>memBUS</strong></div>
+        <div class="xlabel"><strong>Persistent HTTP</strong></div>
+      </div>
+    </section>
+
+    <!-- ============ CHART 2 : full paths ============ -->
+    <section class="card">
+      <h2>2 · Full end-to-end paths</h2>
+      <div class="scope">Prepared pre-send → committed response/ACK correlation. Axis 0 – 1.2 ms.</div>
+
+      <div class="plot">
+        <div class="ylabel">Latency (ms)</div>
+
+        <!-- gridlines: max 1.2, step 0.2 -->
+        <div class="gridline" style="bottom:0%"><span>0.0</span></div>
+        <div class="gridline" style="bottom:16.67%"><span>0.2</span></div>
+        <div class="gridline" style="bottom:33.33%"><span>0.4</span></div>
+        <div class="gridline" style="bottom:50%"><span>0.6</span></div>
+        <div class="gridline" style="bottom:66.67%"><span>0.8</span></div>
+        <div class="gridline" style="bottom:83.33%"><span>1.0</span></div>
+        <div class="gridline" style="bottom:100%"><span>1.2</span></div>
+
+        <div class="groups">
+          <!-- final binary confirmation: final-confirmation/summary.json -->
+          <div class="group">
+            <div class="bars">
+              <div class="bar p50" style="height:71px"><span class="val">0.2931</span></div>
+              <div class="bar p95" style="height:104px"><span class="val">0.4301</span></div>
+            </div>
+          </div>
+          <div class="group">
+            <div class="bars">
+              <div class="bar p50" style="height:158px"><span class="val">0.6558</span></div>
+              <div class="bar p95" style="height:209px"><span class="val">0.8629</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="xaxis">
+        <div class="xlabel"><strong>memBUS</strong>publish → mutation → commit → ACK</div>
+        <div class="xlabel"><strong>Persistent HTTP</strong>send → mutation → commit → response</div>
+      </div>
+    </section>
+  </div>
+
+  <!-- ============ callouts ============ -->
+  <div class="callouts">
+    <div class="callout speed">
+      <span class="tag">Transport → dispatch only</span>
+      <span class="big">memBUS is 14.00× faster at P50</span> than persistent local HTTP.
+      <br>At P95 it is <b>10.74× faster</b> for the same symmetric pre-send → dispatch boundary.
+    </div>
+    <div class="callout">
+      <span class="tag">Full operation — commit + response/ACK</span>
+      <div class="row">
+        <span>At the median: <span class="pill mem">memBUS wins P50 · 2.24×</span></span>
+        <span>At the tail: <span class="pill mem">memBUS wins P95 · 2.01×</span></span>
+      </div>
+      All 1,000 measured operations per path committed; result repeated across three fresh process runs.
+    </div>
+  </div>
+
+  <footer>
+    SpacetimeDB-memBUS latency benchmark · P50 / P95 in milliseconds · linear scale · generated for print (A4 landscape) · Benchmark date: July 11, 2026
+  </footer>
+
+</div>

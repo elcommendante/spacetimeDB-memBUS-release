@@ -5,18 +5,18 @@ Commands assume PowerShell and the release root as the current directory unless 
 ## Packaged starters
 
 ```powershell
-.\2.6.1-1\alpha\Start-Alpha.ps1
-.\2.6.1-1\beta\Start-Beta.ps1
+.\2.6.1-R2\alpha\Start-Alpha.ps1
+.\2.6.1-R2\beta\Start-Beta.ps1
 ```
 
 Override CPU explicitly:
 
 ```powershell
-.\2.6.1-1\alpha\Start-Alpha.ps1 -CpuIndex 2
-.\2.6.1-1\beta\Start-Beta.ps1 -CpuIndex 3
+.\2.6.1-R2\alpha\Start-Alpha.ps1 -CpuIndex 2
+.\2.6.1-R2\beta\Start-Beta.ps1 -CpuIndex 3
 ```
 
-The starters validate files, key directory, listener, CPU existence, and affinity. They pass:
+The starters validate files, key directory and listener. Normal Windows scheduling is the R2 default; when `-CpuIndex` is supplied explicitly, they also validate the CPU and apply process-wide affinity. They pass:
 
 ```text
 start
@@ -44,14 +44,14 @@ Get-Process 'spacetimedb-standalone-*' |
 
 ```powershell
 # Shared-memory call
-.\2.6.1-1\alpha\Send-MemBusSample.ps1
+.\2.6.1-R2\alpha\Send-MemBusSample.ps1
 
 # Bundled local listener: explicitly plain HTTP
-.\2.6.1-1\alpha\Send-LocalHttpSample.ps1 `
+.\2.6.1-R2\alpha\Send-LocalHttpSample.ps1 `
     -BearerToken '<approved-benchmark-token>'
 
 # Actual TLS endpoint: refuses http://
-.\2.6.1-1\alpha\Send-HttpsSample.ps1 `
+.\2.6.1-R2\alpha\Send-HttpsSample.ps1 `
     -ServerUrl 'https://your-endpoint.example' `
     -BearerToken '<approved-benchmark-token>'
 ```
@@ -63,21 +63,21 @@ The v2.6.1 standalone has no native TLS certificate start option. HTTPS requires
 For an automated smoke run without visible endpoint consoles:
 
 ```powershell
-.\2.6.1-1\Start-Demo.ps1 -Headless
+.\2.6.1-R2\Start-Demo.ps1 -Headless
 ```
 
 ```powershell
 $alpha = 'c200c612cf22f9e2b7881c82cf55edd0734b1c95137c1e2616863dcf3672d926'
 $operation = [guid]::NewGuid().ToString('N')
 
-& .\2.6.1-1\tools\spacetimedb-cli.exe call --anonymous -s http://127.0.0.1:3910 --no-config `
+& .\2.6.1-R2\tools\spacetimedb-cli.exe call --anonymous -s http://127.0.0.1:3910 --no-config `
     $alpha membus_send_critical beta alpha-beta $operation '[71,79]'
 ```
 
 Retry an uncertain operation with the same ID and payload:
 
 ```powershell
-& .\2.6.1-1\tools\spacetimedb-cli.exe call --anonymous -s http://127.0.0.1:3910 --no-config `
+& .\2.6.1-R2\tools\spacetimedb-cli.exe call --anonymous -s http://127.0.0.1:3910 --no-config `
     $alpha membus_retry_pending $operation beta alpha-beta '[71,79]'
 ```
 
@@ -86,10 +86,10 @@ Retry an uncertain operation with the same ID and payload:
 ```powershell
 $beta = 'c2001eade1e3b2db5091092cc766e3ee4290ea1f1187e072f2a040f2d44ab07d'
 
-& .\2.6.1-1\tools\spacetimedb-cli.exe sql --anonymous -s http://127.0.0.1:3920 --no-config `
+& .\2.6.1-R2\tools\spacetimedb-cli.exe sql --anonymous -s http://127.0.0.1:3920 --no-config `
     $beta 'SELECT * FROM membus_effect'
 
-& .\2.6.1-1\tools\spacetimedb-cli.exe sql --anonymous -s http://127.0.0.1:3920 --no-config `
+& .\2.6.1-R2\tools\spacetimedb-cli.exe sql --anonymous -s http://127.0.0.1:3920 --no-config `
     $beta "SELECT * FROM membus_inbox WHERE operation_id = '$operation'"
 ```
 
@@ -135,4 +135,4 @@ cargo build --locked --release -p spacetimedb-standalone --features db-membus
 dotnet build modules\db-membus-e2e-cs\db-membus-e2e-cs.csproj -t:Rebuild -c Release -p:DB_MEMBUS=1
 ```
 
-Topology/transport probe binaries are developer artifacts and are not included in `2.6.1-1`.
+Topology/transport probe binaries are developer artifacts and are not included in `2.6.1-R2`.

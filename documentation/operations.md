@@ -3,7 +3,7 @@
 ## Startup
 
 1. Validate endpoint profile and files.
-2. Validate listener and CPU affinity.
+2. Validate the listener and process identity; verify affinity only when an explicit `-CpuIndex` experiment is active.
 3. Load/resolve strict topology.
 4. Resolve and prewarm the configured principal database.
 5. Create/open route mappings and events.
