@@ -5,20 +5,20 @@
 ```mermaid
 flowchart TB
     subgraph Source["Source standalone process"]
-        P["C# procedure"] --> ABI["db_membus_0.1 private async ABI"]
+        P["C# v2 procedure + durable outbox"] --> ABI["db_membus_0.1 private async ABI"]
         ABI --> S["MemBusService"]
         S --> RP["Request RouteProducer"]
         RC["Response RouteConsumer"] --> S
     end
 
     subgraph Windows["Windows kernel objects"]
-        RQ["Request mapping + data/space/shutdown events"]
-        RS["Response mapping + data/space/shutdown events"]
+        RQ["Authenticated Frame v2 request mapping + events"]
+        RS["Authenticated Frame v2 response mapping + events"]
     end
 
     subgraph Destination["Destination standalone process"]
         DW["Blocking route waiter"] --> T["Tokio worker"]
-        T --> V["Route/envelope/allowlist validation"]
+        T --> V["Session/MAC/route/schema/allowlist validation"]
         V --> MH["ModuleHost::call_reducer"]
         MH --> TX["Normal transaction + commit"]
         TX --> AP["Response RouteProducer"]
@@ -30,9 +30,9 @@ flowchart TB
 
 ## Stable transport versus version adapter
 
-The implementation is divided into:
+The private implementation is divided into:
 
-- `db-membus`: configuration, frames, rings, mappings, events, handshakes, routes, metrics;
+- `db-membus`: configuration, authenticated frames, compact route request v3, rings, mappings, events, handshakes, routes and metrics;
 - `db-membus-spacetimedb`: source call service, destination invoker, inbound waiters, exact v2.6 integration;
 - thin SpacetimeDB hooks: standalone bootstrap, private host import registration, C# bindings, log formatting.
 
@@ -47,6 +47,8 @@ This separation is the upgrade strategy: preserve the stable transport crate and
 - source calls are asynchronous and procedure-only;
 - one directed SPSC ring has exactly one producer and one consumer;
 - request-response channels own independent request and response rings.
+
+R6 keeps layered authorization: Windows principal and route capability, authenticated session/frame, topology/reducer allowlist, actual source database identity, destination `ctx.sender`, binary-v2 digest and source-scoped inbox.
 
 ## Failure domains
 

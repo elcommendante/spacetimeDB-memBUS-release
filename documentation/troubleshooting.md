@@ -1,68 +1,71 @@
-# Troubleshooting
+# Troubleshooting — 2.6.1-R6 candidate
 
-## Transfer commits but no `MEMBUS` lines appear
+## Integrity fails
 
-The endpoint `data/config.toml` must include `"membus=debug"` in `[logs].directives`. The clean release seeds include it. A running process does not apply this missing filter immediately, so restart both endpoints after correcting an older extracted data directory. Successful output uses the magenta `MEMBUS` label and includes the source file/line, request publication, destination dispatch and response dispatch.
+Re-extract the complete ZIP into a new directory and rerun `Test-PackageIntegrity.ps1`. Do not replace one binary or seed independently. Preserve the mismatch output for the candidate report.
 
 ## Port already in use
 
-The starter fails and does not select another port.
+The launcher never chooses another port:
 
 ```powershell
 Get-NetTCPConnection -State Listen -LocalPort 3910,3920
 ```
 
-Stop the intended old process or deliberately change the endpoint profile. Do not guess.
+Stop the intended previous process. Do not kill or reconfigure an unrelated listener without confirming ownership.
 
-## Bundled CLI missing
+## Root `run` already exists
 
-Restore `2.6.1-R2/tools/spacetimedb-cli.exe` from the release and validate the release manifest. The sample does not search `PATH`.
+The starter refuses ambiguous security/runtime state. Run `Stop-Demo.ps1`, confirm both standalones exited, then `Reset-Demo.ps1`.
 
-```powershell
-& .\2.6.1-R2\tools\spacetimedb-cli.exe --version
-```
+## Seed missing, incomplete or hash mismatch
 
-## Release-local key directory
+The accepted archives are `seed/alpha-data.zip` and `seed/beta-data.zip`. Do not repair generated `data` manually. Stop both endpoints, reset, verify the package and restart.
 
-The starters create `2.6.1-R2/run/jwt-keys/`; standalone generates the key pair. Use `Start-Demo.ps1` on the first run so beta starts immediately after key generation and within the route handshake timeout. Never commit or distribute the generated private key.
+## Capability provisioning fails
 
-## Principal database missing
+Confirm:
 
-The topology identity must exist in the endpoint's restored `data/`. Verify the configured seed archive and hash. If a first-run extraction was interrupted, stop all endpoint processes, remove only the incomplete generated `data/` directory, and restart so the initializer can restore it again.
+- package is extracted to a writable local filesystem;
+- `tools/membus-security.exe` passes package integrity;
+- alpha/beta/security run as the same Windows user and interactive session;
+- no stale root `run` exists;
+- topology template was not edited.
 
-## Handshake/config/schema/identity mismatch
+Do not broaden ACLs to Everyone, copy a capability from another machine, or switch transport.
 
-Compare both `topology.toml` hashes and logical values. Confirm endpoint profile name, database identity, channel schema, reducer allowlist, Windows user, and logon session.
+## One console exits during startup
 
-```powershell
-Get-FileHash .\2.6.1-R2\alpha\topology.toml
-Get-FileHash .\2.6.1-R2\beta\topology.toml
-```
+Read its visible typed error. Check database identity, endpoint name, resolved topology, seed completeness and listener ownership. The other process may still hold a database lock; stop it before reset/copy.
 
-## Stale named object / already exists
+## No magenta `MEMBUS` lines
 
-Ensure no old endpoint process retains handles. memBUS intentionally refuses to reset an existing mapping. Stop the coordinated pair and restart cleanly; do not delete arbitrary Windows objects while a process may own them.
+The endpoint starters set `RUST_LOG=info,membus=debug`. Confirm the process is the packaged memBUS binary and both `--membus-config`/`--membus-endpoint` arguments are present. Plain listener readiness does not prove route readiness.
 
-## Explicit CPU affinity failed
+## `NotPublished:RouteNotReady`
 
-R2 does not apply affinity by default. If you supplied `-CpuIndex`, check `[Environment]::ProcessorCount` and use a valid zero-based index. The starter stops the process if an explicitly requested affinity cannot be applied.
+Keep both endpoint consoles open and wait for their authenticated handshake. Persistent failure indicates peer/config/capability mismatch and must not fall back to HTTP.
 
-## `WOULD_BLOCK_TRANSACTION`
+## `NotPublished:OperationPayloadTooLarge`
 
-Move `ctx.MemBus.Call` outside `WithTx`. Commit source intent first, call, then open a new transaction to record the result.
+The topology allows 3,500 reducer-argument bytes. Binary-v2 fixed fields consume 52 bytes, leaving exactly 3,448 application bytes. Split or redesign the application message deliberately; do not raise the bound without a new review/campaign.
 
-## `Rejected` or reducer unavailable
+## `Rejected` / execution failure / conflict
 
-Check route target, channel, reducer allowlist, destination `ctx.sender` allowlist, reducer name, schema, and module version. Do not bypass authorization or expose arbitrary reducers.
+Check exact target, channel, reducer allowlist, source database identity, schema, operation ID and payload digest. The same source/operation ID with different payload must fail.
 
 ## `TimedOut` / `Unknown`
 
-Do not report success. Query the destination inbox by OperationId. If absent and retry is approved, reuse the same OperationId and identical payload.
+Do not report success. Preserve operation ID and immutable payload, inspect destination inbox and invoke the approved reconciliation flow before retry. A retry uses the same operation ID and digest with a new correlation.
 
-## HTTPS sample rejects local URL
+## `WOULD_BLOCK_TRANSACTION`
 
-This is intentional. The packaged standalone is plain HTTP. Configure an actual TLS endpoint or use the explicitly named local HTTP sample. There is no downgrade.
+Move `ctx.MemBus.*` outside `WithTx`. Commit source intent, call asynchronously, then open a new transaction to record the result.
 
-## No visible `MEMBUS` log
+## Local HTTP sample rejects the token or URL
 
-Confirm the process is the memBUS binary, both `--membus-*` arguments were supplied, topology reached readiness, and the call used the memBUS procedure. Stock modules contain no private import.
+It requires one explicit bearer token for the exact approved benchmark identity and accepts only `http://` because it is named persistent local HTTP. The package ships no token. `Send-HttpsSample.ps1` intentionally fails because bundled TLS is not configured.
+
+## Locked PID/database file while copying
+
+At least one endpoint still runs. Stop both and wait for process exit before reset, delete, copy or archive. Never copy active database state into a release.

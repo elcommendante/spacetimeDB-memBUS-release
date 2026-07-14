@@ -1,114 +1,83 @@
 # SpacetimeDB-memBUS
 
-SpacetimeDB-memBUS is an experimental, MOD-like extension for SpacetimeDB that lets independent database processes on the same Windows machine invoke approved destination reducers through named shared memory. The short project name used throughout the documentation is **memBUS**.
+SpacetimeDB-memBUS is an experimental, MOD-like extension for SpacetimeDB that lets independent database processes on the same Windows machine invoke approved destination reducers through authenticated Windows named shared memory. The short project name is **memBUS**.
 
-It is not a second database engine and it does not share tables, transactions, pointers, or `RelationalDB` objects between processes. Shared memory is transport only. Destination work still enters the normal SpacetimeDB `ModuleHost`, reducer executor, transaction, commit, durability, and subscription path.
+It is not a second database engine. Shared memory carries framed requests, responses and bounded metadata only. Tables, transactions, pointers, WASM linear memory and `RelationalDB` objects remain process-local. Destination work enters the normal SpacetimeDB `ModuleHost`, reducer executor, transaction, durability and subscription path.
 
-> Current release: [`2.6.1-R2`](2.6.1-R2/) — Windows x64, based on SpacetimeDB v2.6.1.
+> **Current candidate:** `2.6.1-R6` — Windows x64, based on SpacetimeDB v2.6.1. The repository documentation and local package assembly are prepared. The R6 binary asset is intentionally withheld from `dist` until the project lead completes the personal extracted-package test.
 
-> **Production licensing notice:** SpacetimeDB 2.6.1 is distributed under the Business Source License 1.1. Its Additional Use Grant permits an application or service to use no more than **one SpacetimeDB instance in production** and excludes use as a Database Service. SpacetimeDB-memBUS is designed to connect multiple independent SpacetimeDB process instances, so deploying its multi-instance topology in production requires a commercial licence or another applicable arrangement from Clockwork Laboratories. Review the bundled [`LICENSE.txt`](LICENSE.txt), the [upstream SpacetimeDB licence](https://github.com/clockworklabs/SpacetimeDB/blob/v2.6.1/LICENSE.txt), and obtain qualified legal advice for your use case. Development and non-production evaluation are still subject to the full licence terms.
+> **Production licensing notice:** SpacetimeDB 2.6.1 is distributed under the Business Source License 1.1. Its Additional Use Grant permits an application or service to use no more than **one SpacetimeDB instance in production** and excludes use as a Database Service. SpacetimeDB-memBUS is designed for multiple independent instances, so a production multi-instance topology requires a commercial licence or another applicable arrangement from Clockwork Laboratories. Review [`LICENSE.txt`](LICENSE.txt), the [upstream licence](https://github.com/clockworklabs/SpacetimeDB/blob/v2.6.1/LICENSE.txt), and obtain qualified advice for your deployment.
 
-## R2 performance preview
+## R6 performance preview
 
-![SpacetimeDB-memBUS R2 latency comparison](documentation/assets/spacetimedb-membus-r2-latency-comparison.png)
+![SpacetimeDB-memBUS R6 history and current comparison](documentation/assets/spacetimedb-membus-r6-history-comparison.png)
 
-On the documented warm same-machine benchmark, memBUS reached `0.0206 ms` transport P50 and `0.2931 ms` full committed-operation P50. That is `14.00x` faster than persistent local HTTP for the matched transport boundary and `2.24x` faster for the complete mutation, commit and ACK/response boundary. The campaign used 100 warm-up calls and 1,000 measured calls per path, with normal Windows scheduling and benchmark debug observation disabled. These are proof-of-concept measurements from the documented test host, not universal performance guarantees. See the [benchmark methodology and interpretation](documentation/benchmarks.md).
+Five fresh matched process pairs used 100 warm-up and 1,000 measured calls per path/pair with a two-byte payload and normal Windows scheduling:
+
+| Boundary | R6 memBUS P50/P95 | Same-session persistent local HTTP P50/P95 | Result |
+|---|---:|---:|---:|
+| prepared pre-send -> destination dispatch | `0.0250 / 0.0382 ms` | `0.1304 / 0.1755 ms` | memBUS `5.22x / 4.59x` faster |
+| prepared pre-send -> committed ACK/response | `0.2762 / 0.4615 ms` | `0.4731 / 0.6884 ms` | memBUS `1.71x / 1.49x` faster |
+
+All 5,000 R6 and 5,000 HTTP headline operations committed. The comparator is persistent loopback HTTP, not HTTPS/TLS, and it is not a memBUS fallback. These are candidate measurements from the documented host, not universal guarantees. Open the [R6 chart](documentation/db-membus-benchmark-chart.html), [R1-R6 history](documentation/db-membus-release-history-chart.html), or [methodology](documentation/benchmarks.md).
 
 ## Why it exists
 
-SpacetimeDB-memBUS was created for **my MMORPG project**, which is built as a set of colocated SpacetimeDB databases. `PersistenceDB` owns durable character, inventory, equipment, and progression truth. A regional GameWorld database needs only a thin, validated gameplay projection: equipped items, relevant stats, authority/revision metadata, and the live state required to simulate that region. When gameplay changes durable progression, a compact checkpoint travels back to PersistenceDB.
+SpacetimeDB-memBUS was created for **my MMORPG project**, which uses colocated databases with explicit ownership. `PersistenceDB` owns durable character, inventory, equipment and progression truth. Regional GameWorld databases receive only thin, validated gameplay projections and return compact progression/loot operations. An ApiCoordinator owns cross-database workflows and idempotent recovery because no transaction spans two databases.
 
-The current `ApiCoordinator` in my MMORPG project owns cross-database workflows such as enter-world, leave-world, loot pickup, recall, and recovery. It uses explicit `OperationId` records and idempotent source/destination steps because no transaction can span two databases. The target architecture keeps that orchestration, but connects the coordinator and colocated databases through approved memBUS routes to reduce the HTTP/SDK callback and polling overhead visible in the current setup.
-
-memBUS does not replace ApiCoordinator. **ApiCoordinator decides the workflow; memBUS carries approved commands, projections, events, and commit-aware acknowledgements between database processes.**
+memBUS does not replace that coordinator. **The coordinator decides the workflow; memBUS carries approved commands, projections and commit-aware acknowledgements between colocated database processes with less transport overhead.**
 
 ![My MMORPG project's target multi-database topology](MMORPG_MEMBUS_TOPOLOGY.svg)
 
+## One memBUS operation
+
 ```text
-PersistenceDB
-  durable items/equipment/stats
-          ↓ thin equipment + stat projection
-GameWorldRegionDB
-  live movement/combat/AI/gameplay
-          ↓ progression checkpoint / loot operation
-PersistenceDB
-  durable apply and reconciliation
+external trigger of a public source procedure
+-> durable source outbox
+-> procedure-only private async host ABI
+-> topology-owned source route
+-> authenticated Frame v2 / compact request v3
+-> Windows named shared-memory SPSC request ring + event
+-> destination validation and bounded Tokio handoff
+-> normal ModuleHost::call_reducer
+-> reducer AUTH + digest + inbox + mutation
+-> normal destination transaction commit
+-> authenticated response ring
+-> correlated transaction-aware ACK
+-> source outbox result
 ```
 
-For trusted processes on one machine, named shared memory removes the socket, HTTP routing, text framing, and network callback layers from the database-to-database hot path. The bus itself opens no public network listener. Current-user Windows ACLs, explicit topology, database identities, schemas, process epochs, reducer allowlists, sequence validation, CRC32C, destination authorization, and normal reducer transactions remain mandatory. That makes the intended path both faster and more tightly scoped than exposing another general network endpoint; it does **not** make validation or idempotency optional.
-
-The R2 transport-to-dispatch P50 is `0.0206 ms` for memBUS versus `0.2885 ms` for persistent local HTTP. The full committed operation is also faster in the accepted R2 benchmark. Open the [printable latency comparison](documentation/db-membus-benchmark-chart.html) or read [Benchmarks](documentation/benchmarks.md).
-
-Read [The MMORPG project use case](documentation/mmorpg-use-case.md) for ownership, item/equipment transfer, regional gameplay, ApiCoordinator responsibilities, and the planned rollout.
-
-### One memBUS hop
-
-```mermaid
-flowchart LR
-    A["Source C# procedure"] --> B["Private async host ABI"]
-    B --> C["Request SPSC ring"]
-    C --> D["Windows named shared memory"]
-    D --> E["Destination waiter + Tokio worker"]
-    E --> F["ModuleHost::call_reducer"]
-    F --> G["Transaction commit"]
-    G --> H["Response ACK ring"]
-    H --> A
-```
+No arbitrary reducer gateway exists. Endpoint, publisher, subscriber, database identities, schema, channel and destination reducer must all be approved.
 
 ## Core properties
 
 - separate standalone processes remain separate;
-- one SPSC ring per directed route;
-- Windows named mappings and events, scoped to the current user;
-- CRC32C-protected, versioned binary frames;
-- process epochs, sequence numbers, route/schema/identity validation;
-- procedure-only asynchronous C# API;
-- explicit topology and per-destination reducer allowlists;
-- `AUTH=A+`, at-least-once delivery, transaction-aware ACK, inbox idempotency;
-- typed failures and uncertainty — no fabricated success;
-- no HTTP, TCP, named-pipe, or ApiCoordinator fallback.
+- one request/response SPSC pair per directed route;
+- topology v4 with explicit endpoints, routes, bounds and reducer allowlists;
+- current-user interactive principal checks plus route capability provisioning;
+- mutual authenticated handshake and keyed BLAKE3 Frame v2 MAC;
+- CRC32C, PID/process epoch, sequence, session and deadline validation;
+- binary application operation schema v2 and compact route request v3;
+- procedure-only C# APIs; reducers cannot call memBUS;
+- `AUTH=A+`, at-least-once delivery, transaction ACK and destination inbox idempotency;
+- bounded admission, uncertainty, reconciliation, rate and payload limits;
+- typed failure/uncertainty; no fabricated success or silent retry;
+- no HTTP, TCP, named-pipe or ApiCoordinator fallback.
 
-## Quick start
+## Release package quick start
 
-For the ready-to-run ZIP distribution, extract it first and follow `INSTRUCTION.md`. Run `.\Start-Demo.ps1`, wait until both consoles report `MEMBUS ... runtime ready`, and then run `.\Run-MemBus-Test.ps1` from another PowerShell window.
-
-The sample release contains two complete endpoint packages:
-
-```text
-2.6.1-R2/
-├── alpha/  # source, port 3910, normal Windows scheduling
-├── beta/   # destination, port 3920, normal Windows scheduling
-├── seed/   # verified clean database seeds restored on first start
-└── tools/  # matching bundled SpacetimeDB CLI
-```
-
-The recommended launcher opens both endpoint consoles in the required handshake window:
+The local package assembly and `dist` directory are deliberately ignored by the public repository. After the candidate passes the project-lead test and a GitHub Release asset is published, download the complete archive, extract it, then run from the extracted `2.6.1-R6` folder:
 
 ```powershell
-Set-Location .\2.6.1-R2
+Set-ExecutionPolicy -Scope Process Bypass
+.\Test-PackageIntegrity.ps1
 .\Start-Demo.ps1
 ```
 
-On the first start, it verifies and expands both approximately 43.5 MiB seed archives into ignored local `data/` directories. It starts alpha, waits only for standalone to generate the release-local JWT keys, and then starts beta immediately. Do not wait for alpha's listener before starting beta: route readiness requires both endpoint processes. No system-wide CLI installation or pre-existing database snapshot is required.
-
-Manual two-window startup remains available:
+After both black endpoint consoles show magenta `MEMBUS ... runtime ready` messages:
 
 ```powershell
-# Window 1
-Set-Location .\2.6.1-R2\alpha
-.\Start-Alpha.ps1
-```
-
-```powershell
-# Window 2
-Set-Location .\2.6.1-R2\beta
-.\Start-Beta.ps1
-```
-
-Then run the committed MemBus example:
-
-```powershell
-.\2.6.1-R2\alpha\Send-MemBusSample.ps1
+.\Run-MemBus-Test.ps1
 ```
 
 Expected result:
@@ -117,124 +86,87 @@ Expected result:
 "TransactionCommitted"
 ```
 
-The starters, topology, clean database seeds, bundled CLI, samples, configuration template, flow SVG, and SHA-256 manifests are included. Generated data, keys, logs and PID files remain outside version control. See [Getting started](documentation/getting-started.md) for prerequisites and exact verification.
+Stop and reset generated state:
+
+```powershell
+.\Stop-Demo.ps1
+.\Reset-Demo.ps1
+```
+
+See [Getting started](documentation/getting-started.md).
 
 ## Commands at a glance
 
 | Surface | Command/function | Purpose |
 |---|---|---|
-| Standalone | `--membus-config <file>` | Load one explicit topology file |
+| Standalone | `--membus-config <file>` | Load one explicit topology |
 | Standalone | `--membus-endpoint <name>` | Select the exact local endpoint |
-| C# | `ctx.MemBus.Call(...)` | Call one configured reducer from a procedure |
-| Demo | `membus_send_critical` | Durable source outbox, MemBus call, committed ACK update |
-| Demo | `membus_retry_pending` | Replay an uncertain operation with the same OperationId |
-| Demo | `membus_apply_operation` | Authorized destination inbox/effect mutation |
-| Script | `Start-Alpha.ps1` / `Start-Beta.ps1` | Start and pin the packaged processes |
-| Script | `Start-Demo.ps1` | Restore both seeds and open the coordinated two-process demo |
-| Script | `Send-MemBusSample.ps1` | Execute the bundled shared-memory example |
-| Script | `Send-LocalHttpSample.ps1` | Explicit plain-HTTP local comparison |
-| Script | `Send-HttpsSample.ps1` | TLS-only comparison through an external HTTPS endpoint |
+| Security | `membus-security list-routes` | Read exact directed route IDs from topology |
+| Security | `membus-security provision-route` | Create one bounded route capability file; refuses overwrite |
+| C# | `ctx.MemBus.Call(...)` | Call one topology-approved reducer from a procedure |
+| C# | `ctx.MemBus.Reconcile(...)` | Query one uncertain operation through the configured reconciliation contract |
+| C# | `ctx.MemBus.FanOut(...)` | Call the topology-owned target set independently |
+| Demo v2 | `membus_send_critical_v2` | Durable source outbox -> memBUS -> committed ACK update |
+| Demo v2 | `membus_retry_pending_v2` | Retry only the same immutable operation contract |
+| Demo v2 | `membus_reconcile_critical_v2` | Resolve committed/failed/conflict/not-found/unknown state |
+| Demo v2 | `membus_apply_operation_v2` | Source AUTH, SHA-256, inbox idempotency and mutation |
+| Package | `Start-Demo.ps1` | Verify, provision, restore and open both endpoint consoles |
+| Package | `Run-MemBus-Test.ps1` | Execute one committed R6 alpha -> beta call |
+| Package | `Stop-Demo.ps1` | Send Ctrl+C to exact packaged PIDs |
+| Package | `Reset-Demo.ps1` | Remove generated package-local state after shutdown |
 
 ### Example call
 
-An external client first triggers the source procedure on `alpha` through the normal SpacetimeDB API:
-
 ```powershell
-$alpha = 'c200c612cf22f9e2b7881c82cf55edd0734b1c95137c1e2616863dcf3672d926'
-$operationId = [guid]::NewGuid().ToString('N')
+$alpha = 'c2000a2d3f4047d10d648d6641d04f4e8698d6a8cfad978155e5d7bdebae4b23'
+$operation = [guid]::NewGuid().ToString('N')
 
-& .\2.6.1-R2\tools\spacetimedb-cli.exe call --anonymous -s http://127.0.0.1:3910 --no-config `
-    $alpha `
-    membus_send_critical `
-    beta `
-    alpha-beta `
-    $operationId `
-    '[71,79]'
+& .\tools\spacetimedb-cli.exe call --anonymous `
+    -s http://127.0.0.1:3910 --no-config $alpha `
+    membus_send_critical_v2 beta alpha-beta $operation '[71,79]'
 ```
 
-Inside `membus_send_critical`, after committing the source outbox transaction, the procedure switches to shared-memory transport:
-
-```csharp
-var result = ctx.MemBus.Call(
-    targetEndpoint: "beta",
-    channel: "alpha-beta",
-    reducer: "membus_apply_operation",
-    payload: encodedArgs,
-    timeout: TimeSpan.FromSeconds(5),
-    operationId: operationId
-);
-```
-
-The host accepts this call only when `alpha` is an approved publisher, `beta` is the configured subscriber, `alpha-beta` exists, and `membus_apply_operation` appears in beta's reducer allowlist. The request frame then travels through the `alpha → beta` shared-memory ring; after the destination transaction commits, the typed ACK returns through the reverse response ring.
-
-There is no command that enables arbitrary reducer execution. A target, channel, caller identity, schema, and reducer must all be approved by topology and destination code.
-
-See the [complete command reference](documentation/commands.md).
-
-See [Licensing and production deployment](documentation/licensing.md) before planning a production topology.
+The normal client call above is only the trigger. The database-to-database leg after the source procedure enters `ctx.MemBus.Call` is authenticated shared memory.
 
 ## Delivery contract
 
-Initial delivery is **at least once**, not exactly once. A stable 128-bit `OperationId` follows the request. The destination reducer owns an inbox row keyed by that ID and rejects payload-hash conflicts.
+Initial delivery is **at least once**, not exactly once. A stable 128-bit operation ID identifies the business operation; each transport attempt gets a different correlation ID. The destination inbox identity is `(source database identity, operation ID)`. The destination recomputes SHA-256, accepts an exact duplicate idempotently and rejects operation-ID reuse with a different digest.
 
-`TransactionCommitted` means the destination reducer returned a committed transaction outcome. It does not claim an fsync boundary. `TimedOut` and `Unknown` mean the result must be reconciled; they are never converted into success.
+`TransactionCommitted` means the normal destination reducer transaction returned committed and subscriptions were published. It does not claim fsync. `TimedOut`/`Unknown` remain uncertain and require reconciliation; they are never converted into success.
 
-## Performance status
+## Revision path
 
-Matched two-byte, warm, same-host measurements on optimized build `2.6.1 - 5`:
+- **R1:** initial Windows named-shared-memory/SPSC proof of concept; historical asymmetric timer.
+- **R2:** matched QPC boundaries, event-driven receiver, destination cache, bounded admission/deadline, outbox/inbox and commit ACK.
+- **R3:** authenticated Frame v2, principal/capability handshake, keyed MAC and replay/PID/epoch binding.
+- **R4:** bounded uncertainty, attempt correlation, reconciliation lane, crash/restart and payload boundary proof.
+- **R5:** fanout/many-to-one foundations, quotas/rate limits, snapshots, rotation, shutdown and service groundwork.
+- **R6:** binary schema v2, compact route request v3, reusable producer buffers, single-owned receive payload and lower-observer-effect profiling.
 
-| Boundary | memBUS P50 / P95 | Persistent local HTTP P50 / P95 | Result |
-|---|---:|---:|---|
-| Symmetric pre-send QPC to destination dispatch QPC | 0.0206 / 0.0348 ms | 0.2885 / 0.3738 ms | memBUS 14.00x / 10.74x faster |
-| Pre-send to committed response/ACK correlation | 0.2931 / 0.4301 ms | 0.6558 / 0.8629 ms | memBUS 2.24x / 2.01x faster |
+## Remaining acceptance work
 
-Conditions: 100 warm-up calls, 1,000 measured calls per path, warm processes, benchmark debug observer disabled, and normal Windows scheduling with all available CPUs. All 1,000 measured operations per path committed; the result was repeated across three fresh process runs. These figures describe the documented test host and are not a performance guarantee for every machine.
+- project-lead extracted-package test of the R6 assembly; the binary asset remains intentionally withheld until that test passes;
+- fresh-module publication reproducibility for later rebuild outputs;
+- four-process schema-v2 fanout/many-to-one rerun;
+- elevated Windows SCM/Session 0/service ACL acceptance;
+- repeated P99/P99.9, crash, soak, pressure and service-mode campaigns.
 
-See [Benchmarks](documentation/benchmarks.md).
+The project remains a focused same-machine transport. It will not add automatic HTTP fallback, arbitrary reducer execution, cross-process transactions, shared database objects or unbounded retries.
 
 ## Documentation
 
 - [Documentation index](documentation/README.md)
 - [Getting started](documentation/getting-started.md)
 - [Architecture](documentation/architecture.md)
-- [Complete end-to-end flow](documentation/end-to-end.md)
+- [End-to-end path](documentation/end-to-end.md)
 - [Configuration](documentation/configuration.md)
 - [Command reference](documentation/commands.md)
-- [Protocol and delivery semantics](documentation/protocol.md)
-- [Operations and lifecycle](documentation/operations.md)
+- [Protocol and delivery](documentation/protocol.md)
+- [Operations](documentation/operations.md)
 - [Benchmarks](documentation/benchmarks.md)
 - [Troubleshooting](documentation/troubleshooting.md)
-- [Development and verification](documentation/development.md)
 - [Upgrade strategy](documentation/upgrade-guide.md)
 
-## Roadmap — things still to be done
+## License and support
 
-SpacetimeDB-memBUS R2 proves the complete local path from shared-memory publication through destination reducer commit and transaction-aware ACK. Before production use, the project still needs:
-
-- authenticated per-route handshakes and cryptographic frame authentication;
-- explicit Windows SID-based ACLs and secure secret storage/rotation;
-- complete crash, restart, stale-epoch and lost-ACK recovery testing;
-- operation-status reconciliation after `TimedOut` or `Unknown`;
-- validated payload limits beyond the currently accepted 1,024 bytes;
-- real multi-destination fanout testing;
-- Windows Service and Session 0 acceptance;
-- rate limits, security auditing and production diagnostics;
-- long-running soak, P99, throughput and backpressure benchmarks.
-
-The project will remain a focused same-machine shared-memory transport. It will not add automatic HTTP fallback, arbitrary reducer execution, shared database objects, cross-process transactions or unbounded retries.
-
-## Status and limitations
-
-Verified: frame/ring protocol, strict topology, cross-process Windows mapping/events, private ABI, C# opt-in/stock compatibility, real reducer commit, duplicate suppression, optimized generation-safe destination cache, normal Windows scheduling, matched dispatch benchmark, and full transaction-aware ACK timing.
-
-Not yet accepted: exact crash/restart boundary campaign, Windows Session 0/service ACL behavior, real three-destination fanout, payloads above 1,024 bytes, and security-grade per-route authentication/MAC.
-
-## License
-
-This distribution derives from SpacetimeDB v2.6.1. Read [LICENSE.txt](LICENSE.txt) and [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) before use or redistribution. The upstream Business Source License is not an Open Source license before its stated change date.
-
-## Support
-
-- [Security](SECURITY.md)
-- [Support](SUPPORT.md)
-- [Release changelog](CHANGELOG.md)
+Read [LICENSE.txt](LICENSE.txt), [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md), [Security](SECURITY.md) and [Support](SUPPORT.md) before use or redistribution. Source code is not included at this project stage.

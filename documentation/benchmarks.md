@@ -1,45 +1,62 @@
 # Benchmarks
 
-## R2 accepted boundaries
+## Current R6 matched campaign
 
-Payload: two bytes (`GO`), same Windows host, warm state, 100 warm-up calls plus 1,000 measured calls per path. Benchmark debug observation was disabled and both processes used normal Windows scheduling.
+**Classification:** candidate, interactive Windows, same machine. It is not SCM/Session 0 evidence and not a universal guarantee.
 
-| Metric | P50 | P95 |
-|---|---:|---:|
-| memBUS symmetric pre-send QPC -> destination dispatch QPC | 0.0206 ms | 0.0348 ms |
-| Persistent local HTTP symmetric pre-send QPC -> destination dispatch QPC | 0.2885 ms | 0.3738 ms |
-| Full memBUS pre-send -> committed ACK correlation at source | 0.2931 ms | 0.4301 ms |
-| Full HTTP pre-send -> committed response correlation | 0.6558 ms | 0.8629 ms |
+Exact boundaries:
 
-## Interpretation
+- transport: prepared pre-send QPC immediately before memBUS frame construction or HTTP `SendAsync` -> destination dispatch QPC;
+- full: the same prepared pre-send QPC -> correlated committed ACK/HTTP response dispatch at the source.
 
-- memBUS is 14.00x faster at P50 and 10.74x faster at P95 for transport-to-dispatch.
-- memBUS is 2.24x faster at P50 and 2.01x faster at P95 for the full committed operation.
-- All 1,000 measured operations per path committed.
-- The result was repeated across three fresh process runs and confirmed against the final R2 binary.
+Both paths execute the same binary-v2 destination mutation: approved sender, SHA-256 verification, source-scoped inbox idempotency, one effect update and a normal SpacetimeDB transaction commit.
 
-R2 removes repeated destination resolution from the normal hot path with a prewarmed, generation-safe cache. Every call still validates the current identity, leader and module generation and still enters the normal `ModuleHost`, reducer, transaction and commit path.
+Campaign:
 
-The local HTTP test used `http://`, not TLS. Do not label it HTTPS.
+1. five fresh alpha/beta process pairs;
+2. fresh expanded seeds and newly provisioned authenticated route per pair;
+3. normal Windows scheduling across 20 logical CPUs;
+4. 100 warm-up plus 1,000 measured operations per path/pair;
+5. two-byte application payload;
+6. every operation required a committed result;
+7. report the median of the five run-level nearest-rank P50/P95 values; do not pool samples.
 
-These figures describe the documented test host and are not a performance guarantee for every machine. Debug-level per-operation observation materially increases latency; the accepted comparison therefore keeps the benchmark observer disabled for both paths.
+| Boundary | R6 memBUS P50/P95 | Persistent local HTTP P50/P95 | Speedup P50/P95 |
+|---|---:|---:|---:|
+| transport -> dispatch | `0.0250 / 0.0382 ms` | `0.1304 / 0.1755 ms` | `5.22x / 4.59x` |
+| full commit -> ACK/response | `0.2762 / 0.4615 ms` | `0.4731 / 0.6884 ms` | `1.71x / 1.49x` |
 
-Open the [printable R2 chart](db-membus-benchmark-chart.html).
+All 5,000 memBUS and 5,000 HTTP headline calls committed. Host-load samples were 0-10%.
 
-## ApiCoordinator context
+Payload scaling retained a full-path win at 256 B and exact configured maximum 3448 B. A 3449-byte application payload was rejected before publication as `NotPublished:OperationPayloadTooLarge`.
 
-The earlier live PersistenceDB -> ApiCoordinator -> GameWorldDB chain measured about 31.186 ms P50 from source committed callback to target committed callback and 62.153 ms P50 for the external HTTP roundtrip. Its callback loop included a 10 ms polling delay, so it is not a pure network comparison and is not mixed into the matched R2 chart.
+## Tail diagnostic
 
-## Rules for new results
+One additional fresh pair executed 10,000 measured calls/path after warm-up:
 
-- use the same payload, reducer, mutation and commit semantics;
-- separate transport, resolution, reducer/commit, ACK, and client/CLI time;
-- report P50/P95/P99/max and raw sample count;
-- exclude and identify warm-up/cold start explicitly;
-- do not compare different clocks as a sub-millisecond one-way timer;
-- retain raw evidence and exact commands;
-- never claim a full-operation multiplier from a transport-only timer.
+| Path | Full P50 | P95 | P99 | P99.9 | Max |
+|---|---:|---:|---:|---:|---:|
+| R6 memBUS | `0.2525` | `0.3533` | `0.5829` | `1.1249` | `13.6173` ms |
+| persistent local HTTP | `0.4524` | `0.6480` | `0.8375` | `1.0497` | `2.9818` ms |
 
-## Remaining optimization area
+This is a diagnostic, not a repeated tail acceptance campaign. R6 wins through P99; one memBUS outlier raises max and its P99.9 is slightly worse.
 
-The shared-memory handoff is no longer the dominant full-call cost. The largest measured phase is normal reducer execution and transaction work. Future work must preserve authorization, destination idempotency, normal reducer execution, commit-aware ACK and uncertainty semantics.
+## History chart caveat
+
+The release-history chart plots R2-R6 on the prepared pre-send -> committed ACK boundary. R1 used an older asymmetric diagnostic timer and is retained as a clipped, explicitly non-comparable historical bar. The single HTTP bar on the history panel is the current R6 same-session comparator; it must not be used as if it were measured in every historical session.
+
+Open:
+
+- [current R6 chart](db-membus-benchmark-chart.html);
+- [R1-R6 history chart](db-membus-release-history-chart.html).
+
+## Rules for future claims
+
+- same payload, reducer, mutation, auth and commit semantics;
+- matched clocks and symmetric boundaries;
+- fresh process/state/capability roots;
+- warm-up declared separately;
+- raw count and aggregation method retained;
+- P50/P95 plus repeated P99/P99.9 where claimed;
+- no transport-only multiplier presented as a full-operation result;
+- no TLS/HTTPS label for the current plain loopback HTTP comparator.

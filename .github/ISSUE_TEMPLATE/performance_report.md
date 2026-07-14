@@ -11,7 +11,7 @@ State exact start/end timestamps. Do not mix transport-only and full-transaction
 
 ## Environment
 
-Release, binary hash, Windows version, CPUs/affinity, payload, concurrency, warm-up, sample count.
+Release, binary hash, topology/protocol/security profile, Windows version, CPUs/affinity, payload, concurrency, warm-up, sample count, process-pair count and aggregation method.
 
 ## Results
 

@@ -1,5 +1,7 @@
 # Development and verification
 
+> **Source availability:** development source is not included in the public repository at this stage. This page documents the engineering and verification model behind the binary candidate; the commands below are maintainers' reference commands and cannot be run from the release-only checkout.
+
 ## Source ownership
 
 ```text
@@ -42,3 +44,5 @@ Then prove two real Windows processes, named mapping/events, reducer mutation, c
 ## Documentation requirement
 
 Protocol, configuration, integration hooks, tests, benchmarks, changelog, and progress evidence must change with behavior. “Compiles” is not a completion proof.
+
+Public release acceptance additionally requires package-integrity verification, clean extraction, two real processes, authenticated route readiness, a committed sample, graceful shutdown and a clean reset. R6 still awaits the project lead's extracted-package acceptance test.

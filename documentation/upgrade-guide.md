@@ -2,14 +2,16 @@
 
 SpacetimeDB-memBUS is ported release by release; it does not blindly update the modified tree.
 
+The public repository does not currently distribute these source trees. This page records the maintainers' clean-intake policy so a future port or source publication does not blur upstream and memBUS ownership.
+
 ## Layout model
 
 ```text
 baseline/source/<version>     exact unmodified upstream
-baseline/build/<version>-N    baseline proof
+baseline/build/<version> - N  baseline proof
 memBUS/source/<version>       modified source
-memBUS/build/<version>-N      implementation builds/evidence
-memBUS/release/<version>-N    packaged release
+memBUS/build/<version> - N    implementation builds/evidence
+memBUS/release/<version>-R<N> packaged release
 ```
 
 ## Port sequence

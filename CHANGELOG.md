@@ -1,5 +1,27 @@
 # Release changelog
 
+## 2.6.1-R6 repository surface — 2026-07-14
+
+- Updated the repository README, public documentation index, release procedures, security/support guidance and issue templates for the R6 candidate.
+- Replaced the stale R1 MMORPG benchmark link and numbers with the matched R6 campaign and current repository-tracked charts.
+- Made the bundled benchmark report self-contained; it no longer references private build/test-evidence paths or stale pre-packaging state.
+- Retained the local ignored `2.6.1-R6` package assembly while intentionally withholding the R6 ZIP and adjacent checksum from `dist` until the project lead's extracted-package test.
+- No source code, private evidence, secrets or active database state was added to the public repository surface.
+
+## 2.6.1-R6 candidate — 2026-07-14
+
+Candidate Windows x64 binary distribution based on SpacetimeDB v2.6.1 and the accepted Build 10/R6 two-process evidence.
+
+- Added binary application operation schema v2 with fixed `U128` operation IDs, fixed `U256` SHA-256 digests, source-scoped binary outbox/inbox rows and explicit v2 reconciliation operations.
+- Added compact route request v3, reusable producer scratch, single-owned receive payload and lower-observer-effect profiling without changing authenticated Frame v2 or Clockwork Labs core.
+- Retained authenticated route capability handshake, keyed BLAKE3 frame MAC, CRC32C, process/session/sequence validation, explicit reducer allowlist, at-least-once delivery, bounded uncertainty, reconciliation and post-commit ACK.
+- Accepted a real two-process v2 correctness campaign covering direct commit, duplicate idempotency, digest conflict, exact 3448-byte application maximum, max+1 rejection, peer loss, fresh PID/session/epoch restart and reconciliation.
+- Measured five fresh matched process pairs: R6 `0.0250 / 0.0382 ms` transport and `0.2762 / 0.4615 ms` full P50/P95 versus same-session persistent local HTTP `0.1304 / 0.1755 ms` and `0.4731 / 0.6884 ms`.
+- Added a candidate package with separate alpha/beta binaries, accepted clean seed pair 4, matching CLI, `membus-security`, package-relative PowerShell start/stop/reset/test scripts, checksums, flow diagram, R6 chart and R1-R6 history chart.
+- Excluded bearer tokens, JWT/capability secrets, active database state, source code, private development evidence and the rejected seed experiments 5/6.
+
+**Acceptance:** build/focused-test/real two-process v2/interactive matched benchmark evidence is accepted. The assembled ZIP still requires the project lead's personal extracted-package test. Four-process schema-v2 and elevated SCM/Session 0 remain open, so this is not a production release.
+
 ## Roadmap summary — 2026-07-11
 
 - Added a compact production-readiness roadmap to the public README.

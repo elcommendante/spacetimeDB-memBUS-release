@@ -9,6 +9,7 @@ labels: bug
 
 - SpacetimeDB-memBUS release:
 - Standalone SHA-256:
+- Topology / protocol / security profile:
 - Windows version:
 - Logical CPUs / affinity masks:
 

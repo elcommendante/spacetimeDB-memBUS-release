@@ -77,10 +77,10 @@ See [`MMORPG_MEMBUS_TOPOLOGY.svg`](../MMORPG_MEMBUS_TOPOLOGY.svg). Solid nodes a
 
 ## Performance evidence
 
-The [printable benchmark chart](db-membus-benchmark-chart.html) shows both accepted boundaries:
+The current [R6 benchmark chart](db-membus-benchmark-chart.html), [R1-R6 history](db-membus-release-history-chart.html) and [methodology](benchmarks.md) keep transport-only and full-transaction boundaries separate:
 
-- transport to destination dispatch: memBUS P50/P95 `0.0206/0.0348 ms`, persistent local HTTP `0.2885/0.3738 ms`;
-- full mutation/commit/ACK: memBUS P50/P95 `0.2931/0.4301 ms`, persistent local HTTP `0.6558/0.8629 ms`;
-- full-path P95: memBUS `4.662 ms`, HTTP `6.432 ms`.
+- prepared pre-send to destination dispatch: R6 memBUS P50/P95 `0.0250 / 0.0382 ms`, persistent local HTTP `0.1304 / 0.1755 ms`;
+- prepared pre-send to committed ACK/response: R6 memBUS P50/P95 `0.2762 / 0.4615 ms`, persistent local HTTP `0.4731 / 0.6884 ms`;
+- the matched headline campaign contains five fresh process pairs, 100 warm-up and 1,000 measured calls per path/pair; all 5,000 operations per path committed.
 
-The next optimization targets repeated destination database/leader/module resolution. Transport-only and full-transaction claims must remain separate.
+The comparator is plain persistent loopback HTTP, not HTTPS/TLS, and it is never a memBUS fallback. These candidate results describe the documented test host and are not universal guarantees.

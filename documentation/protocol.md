@@ -1,58 +1,51 @@
-# Protocol and delivery semantics
+# Protocol and delivery — R6
 
-## Frame v1
+## Layers
 
-- little-endian;
-- fixed header: 232 bytes;
-- ring records aligned to 8 bytes;
-- magic `DBMBUS01`;
-- protocol/header version 1;
-- final marker `0x44424D425553434D`;
-- CRC32C for header and payload.
+1. **Application operation schema v2:** fixed U128 operation ID, fixed U256 SHA-256 digest and bounded payload.
+2. **Compact route request v3:** deterministic reducer slot plus route-owned metadata inside the authenticated transport payload.
+3. **Frame v2:** versioned header, route/session identity, epoch/PID/sequence/deadline, lengths, CRC32C and keyed BLAKE3 MAC.
+4. **SPSC transport:** one directed request ring and one reverse response ring per route, each with Windows named mapping and event.
 
-Important fields include route/channel IDs, endpoints, source database, source PID/epoch, expected destination epoch, sequence, OperationId, correlation ID, schema, payload length, and deadline.
+R6 changes layers 1-2 and DB-MemBus-owned copy/allocation behavior. It does not weaken Frame v2, ring ordering or destination transaction semantics.
 
-Publication order is copy → Release fence → commit marker → Release tail → `SetEvent`. Consumption Acquire-loads tail, validates the complete record, Release-publishes head, and signals space.
+## Publication and validation
 
-## Route objects
+The producer builds a complete bounded frame, writes bytes, performs the documented release ordering, publishes the tail and signals the named event. The receiver wakes, acquires the published region, validates marker/length/version/route/session/epoch/PID/sequence/deadline/CRC/MAC, then transfers one owned payload into a bounded nonblocking-first Tokio handoff.
 
-Each directed route owns:
+Invalid input never reaches `ModuleHost`. Queue/rate/admission/payload rejection is typed and occurs before publication where possible.
+
+## Authentication
+
+Topology and local principal checks select the exact peer contract. Capability files bootstrap mutual proof and derive per-session frame material. Key ID, generation, session, route, process and sequence are bound. Old, gap, duplicate, exhausted, wrong-route or invalid-MAC traffic fails closed.
+
+Transport authentication complements, not replaces:
+
+- topology reducer allowlist;
+- actual source database identity as reducer caller;
+- destination `ctx.sender` allowlist;
+- source-scoped inbox idempotency;
+- destination-recomputed SHA-256.
+
+## Delivery truth
+
+- delivery: at least once;
+- acknowledgement: destination transaction outcome;
+- result: ACK plus destination inbox;
+- timeout: uncertain;
+- exactly once: not claimed;
+- fsync durability boundary: not claimed.
+
+The stable operation ID remains constant across retries. Every attempt has a distinct correlation ID. A late ACK resolves only its exact attempt/tombstone and cannot satisfy a newer retry.
+
+## Reconciliation
+
+After a published timeout or route loss, bounded uncertain state retains the immutable operation contract. The reconciliation lane queries destination inbox truth without retrying the mutation:
 
 ```text
-Local\DBMemBus.<route>.map
-Local\DBMemBus.<route>.data
-Local\DBMemBus.<route>.space
-Local\DBMemBus.<route>.shutdown
+Committed / Failed / Conflict -> terminal evidence
+NotFound                      -> same immutable operation may retry
+Unknown                       -> remain uncertain
 ```
 
-`data` and `space` are auto-reset hints. Correctness always rechecks atomic cursors. `shutdown` is manual-reset.
-
-The control block contains immutable sizing/route fields, producer/consumer claims and decisions, hashes, identities, epochs, state, binding, cursors, and counters. Mutual handshake acceptance is required before traffic.
-
-## Delivery
-
-Contract: at least once, `AUTH=A+`, `ACK=TRANSACTION`, `RESULT=ACK+INBOX`.
-
-| Outcome | Meaning | Action |
-|---|---|---|
-| `TransactionCommitted` | Destination transaction committed | Mark source outbox acknowledged |
-| `AlreadyTransactionCommitted` | Same operation already applied | Treat as acknowledged after inbox verification |
-| `Rejected` | Route/auth/schema/input rejection | Correct configuration or request |
-| `ExecutionFailed` | Reducer failed; no commit | Correct code/input before retry |
-| `BudgetExceeded` | Execution budget exhausted | Retry only under an explicit policy |
-| `RetryableFailure` | Typed transient pre-known-commit failure | Bounded same-ID retry |
-| `TimedOut` / `Unknown` | Commit state unknown | Reconcile inbox, then same-ID retry if absent |
-
-ACK is emitted after `ReducerOutcome::Committed`. It is not an fsync claim. Exactly once is not claimed.
-
-## Idempotency
-
-OperationId is stable across retry. The destination inbox key plus payload hash ensures:
-
-- identical duplicate: no duplicate effect;
-- same ID with different payload: reject;
-- new ID: new operation.
-
-## Fail-closed states
-
-Corruption, sequence gap, identity/schema/config mismatch, stale epoch, duplicate ownership, missing peer, shutdown, or irreversible signal failure stops the affected route. No frame is skipped and acknowledged as success.
+The source never turns `Unknown` into success by assumption.

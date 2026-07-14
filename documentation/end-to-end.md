@@ -1,132 +1,64 @@
-# Complete end-to-end flow
+# R6 end-to-end operation
 
-This page follows one `membus_send_critical` call from the source procedure to the committed destination effect and back to the source ACK.
+## 1. Client trigger
 
-## 1. Durable source intent
+An external client invokes public alpha procedure `membus_send_critical_v2`. This trigger uses the normal SpacetimeDB client endpoint and is outside the measured database-to-database memBUS leg.
 
-The source C# procedure accepts an explicit 32-hex OperationId and payload. Inside a short local `WithTx`, it inserts or validates a `membus_outbox` row with state `Pending` and a stable payload fingerprint. The transaction closes before any cross-process wait.
+Inputs are explicit target endpoint, channel, canonical operation key and bounded byte payload. The procedure parses the operation ID, computes SHA-256 and creates/validates the immutable binary-v2 outbox contract inside a short source transaction.
 
-## 2. Procedure-only API
+## 2. Procedure-only host call
 
-Outside `WithTx`, the procedure calls:
+After `WithTx` closes, the procedure encodes fixed U128/U256 fields and calls:
 
 ```csharp
-ctx.MemBus.Call(
-    "beta",
-    "alpha-beta",
-    "membus_apply_operation",
-    encodedArgs,
-    TimeSpan.FromSeconds(5),
-    operationId
-);
+ctx.MemBus.Call(target, channel, "membus_apply_operation_v2", args, timeout, operationId)
 ```
 
-The C# runtime encodes `DBMCALL1`, version, target, channel, reducer, timeout, OperationId, and BSATN reducer arguments. It invokes `db_membus_0.1::procedure_membus_call`.
+Reducers cannot call memBUS. Holding a mutable transaction across the process call is rejected.
 
-Reducers and views use a trapping synchronous stub. Calling while a mutable transaction is open returns `WOULD_BLOCK_TRANSACTION`.
+## 3. Source admission
 
-## 3. Source service validation
+The source adapter resolves the exact topology route and deterministic reducer slot. It checks endpoint role, target, channel, allowlist, schema, payload/message limits, request deadline, endpoint/route in-flight limits, token-bucket rate and bounded recovery capacity.
 
-The async host import delegates to the process `MemBusService`. The service decodes the envelope and verifies:
+A pre-publication failure is definitely `NotPublished`. It consumes no transport sequence and is never silently queued/dropped.
 
-- caller database equals the configured local principal;
-- request target/channel has an outbound request route;
-- reducer appears in the channel allowlist;
-- OperationId is not already in flight;
-- peer epoch and route state are valid.
+## 4. Shared-memory request
 
-It creates a request frame with the authenticated route metadata and deadline.
+R6 encodes compact route request v3 inside authenticated Frame v2. The frame binds route/session/process epoch/PID/sequence/deadline, validates with CRC32C plus keyed BLAKE3, and publishes to the alpha->beta SPSC ring using release/acquire atomic ordering. `SetEvent` wakes the beta waiter when required.
 
-## 4. Frame construction
+## 5. Destination dispatch
 
-Protocol v1 encodes a 232-byte little-endian header plus payload and zero padding. It includes route/channel IDs, endpoint IDs, source database identity, process ID/epoch, expected destination epoch, sequence, OperationId, correlation ID, schema, deadline, payload CRC32C, header CRC32C, and a final commit marker.
+Beta wakes, drains the published ring and performs strict validation before one bounded Tokio handoff. The version-sensitive adapter uses a lifecycle-safe validated destination handle and calls the existing `ModuleHost::call_reducer` with the actual alpha database identity as caller.
 
-## 5. SPSC publication
+No direct datastore write or reducer reimplementation exists.
 
-The source producer:
+## 6. Reducer and commit
 
-1. reads ring head/tail and checks bounded capacity;
-2. copies header, payload, and padding with the marker cleared;
-3. executes a Release fence;
-4. writes the final commit marker;
-5. Release-publishes the new tail cursor;
-6. signals the named `data` event with Win32 `SetEvent`.
+`membus_apply_operation_v2`:
 
-Queue full produces explicit backpressure. Critical frames are not overwritten or dropped.
+1. validates `ctx.sender` through the destination allowlist;
+2. recomputes SHA-256 from payload and fixed-time compares the digest;
+3. looks up inbox identity `(operation ID, source database identity)`;
+4. returns idempotently for an exact duplicate;
+5. rejects the same operation ID/different digest;
+6. updates `membus_effect` and inserts `membus_inbox_v2` in one normal transaction.
 
-## 6. Windows wake and destination decode
+SpacetimeDB owns reducer execution, transaction creation, commit/durability behavior and subscription publication.
 
-A destination-owned blocking waiter is sleeping in `WaitForMultipleObjects` on the route's `data` and `shutdown` events. Windows schedules it after the signal. The waiter Acquire-loads the ring state and validates marker, sizes, protocol, route, endpoint/database identities, epochs, schema, sequence, CRCs, and deadline.
+## 7. Commit-aware ACK
 
-After Release-publishing the new head and signalling space, the waiter sends the decoded frame through `blocking_send` into a bounded Tokio MPSC channel. The waiter never invokes reducers or mutates service state.
+Only `ReducerOutcome::Committed` produces `TransactionCommitted`. Beta encodes the result into the authenticated reverse response ring. Alpha validates and correlates the response to the exact attempt, releases admission state and updates the durable source outbox.
 
-## 7. Tokio dispatch and destination invocation
+The ACK means transaction commit, not fsync. Timeout after publication remains uncertain even if a late ACK subsequently arrives.
 
-The single service worker receives the frame, validates it against the authenticated route, decodes the request envelope, and repeats the destination reducer allowlist check.
+## 8. Recovery
 
-The v2.6 adapter currently performs:
+Route loss closes the authenticated session. Restart requires a fresh PID/epoch/session handshake; stale frames are rejected. The operation ID and payload digest remain stable across an explicit retry. Reconciliation queries the destination inbox before any uncertain mutation is retried.
 
-```text
-get_database_by_identity
-→ leader
-→ host.module()
-→ ModuleHost::call_reducer
-```
+## Non-goals
 
-The actual source database identity becomes the reducer caller. No owner identity or client identity is fabricated.
-
-## 8. Normal reducer transaction
-
-`membus_apply_operation` is public because cross-database caller identity cannot invoke a private reducer. It enforces `ctx.sender` against a destination-owned allowed-source table.
-
-The reducer then:
-
-1. checks `membus_inbox` by OperationId;
-2. rejects reuse with a different payload hash;
-3. returns safely for an identical duplicate;
-4. increments the example effect;
-5. inserts the inbox result;
-6. returns through the normal transaction executor.
-
-Only `ReducerOutcome::Committed` becomes `TransactionCommitted`.
-
-## 9. Commit-aware ACK
-
-After the destination invocation returns, the service encodes `DBMRSP01` with the typed outcome and same OperationId. It selects the reverse response route and publishes another checksummed SPSC frame using the same atomic/event protocol.
-
-`TransactionCommitted` proves the destination transaction committed. It does not prove an fsync boundary.
-
-## 10. Source response correlation
-
-The source response waiter wakes, validates and decodes the frame, and sends it to the service worker. The worker matches OperationId to the pending oneshot and returns the encoded response to the host import and C# procedure.
-
-The source procedure opens a new short local transaction and updates its outbox state to the typed outcome.
-
-## 11. Timeout and reconciliation
-
-If the source deadline expires before the response arrives, the result is `TimedOut`/unknown. The source must query/reconcile the destination inbox. A retry uses the same OperationId and payload. A new ID would risk applying a duplicate business effect.
-
-## Full path summary
-
-```text
-source outbox commit
-→ C# procedure-only MemBus call
-→ private async ABI
-→ source validation
-→ checksummed request frame
-→ SPSC Release publication
-→ SetEvent / Windows scheduling
-→ destination Acquire validation
-→ Tokio dispatch
-→ database → leader → module resolution
-→ ModuleHost::call_reducer
-→ destination authorization + inbox idempotency
-→ normal transaction commit
-→ checksummed response frame
-→ reverse SPSC + SetEvent
-→ source validation/correlation
-→ typed ACK
-→ source outbox outcome commit
-```
-
-The accepted performance timer excludes the source outbox transactions and CLI startup. See [Benchmarks](benchmarks.md).
+- no shared tables, pointers, WASM memory or transaction objects;
+- no cross-database transaction;
+- no arbitrary reducer gateway;
+- no HTTP/TCP/named-pipe fallback;
+- no exactly-once or fsync claim.
