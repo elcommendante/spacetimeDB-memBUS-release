@@ -30,11 +30,15 @@ The launcher resolves only package-local capability/operator paths, provisions t
 
 Wait for both consoles to remain open and show a magenta `MEMBUS` readiness message.
 
+Startup must also confirm `MemBusDebug=1` was applied to the effective standalone configuration. This is part of release acceptance, not an optional developer setting.
+
 ## Test
 
 ```powershell
 .\Run-MemBus-Test.ps1
 ```
+
+The wrapper must return `TransactionCommitted`, and both endpoint consoles must visibly emit magenta `MEMBUS` runtime lines for the transfer. Treat a silent endpoint console as a package defect even if the client wrapper returned success.
 
 Expected result:
 

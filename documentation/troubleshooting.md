@@ -40,7 +40,7 @@ Read its visible typed error. Check database identity, endpoint name, resolved t
 
 ## No magenta `MEMBUS` lines
 
-The endpoint starters set `RUST_LOG=info,membus=debug`. Confirm the process is the packaged memBUS binary and both `--membus-config`/`--membus-endpoint` arguments are present. Plain listener readiness does not prove route readiness.
+Confirm each endpoint configuration contains `MemBusDebug = 1` and startup reports that the effective `data/config.toml` contains `membus=debug`. SpacetimeDB v2.6.1 standalone constructs its filter from that data-root file; setting only `RUST_LOG` does not enable these events. Confirm both `--membus-config`/`--membus-endpoint` arguments are present. Plain listener readiness does not prove route readiness.
 
 ## `NotPublished:RouteNotReady`
 

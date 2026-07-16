@@ -1,5 +1,13 @@
 # Release changelog
 
+## 2.6.1-R6 visible MEMBUS logging correction — 2026-07-16
+
+- Restored the release configuration contract `MemBusDebug = 1` for both endpoints.
+- Materialized the effective `membus=debug` directive in each standalone data-root configuration before process start; `RUST_LOG` alone is not consumed by the v2.6.1 standalone filter.
+- Added an acceptance gate requiring visible magenta `MEMBUS` publication and destination-dispatch events during `Run-MemBus-Test.ps1`.
+- Rebuilt the package manifest and Windows x64 ZIP after a clean two-process committed-call verification.
+- Replacement ZIP size: `303264952` bytes; SHA-256: `8a9cf4b0007af40ecb56d59db5e384d97345b6a83016fabab73a116bbc3fdee0`.
+
 ## 2.6.1-R6 documentation boundary correction — 2026-07-16
 
 - Reduced the public documentation to stable product behavior, package operation, measured results, supported scope and known limitations.

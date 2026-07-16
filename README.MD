@@ -70,6 +70,8 @@ After both black endpoint consoles show magenta `MEMBUS ... runtime ready` messa
 .\Run-MemBus-Test.ps1
 ```
 
+Both endpoint consoles must visibly print magenta `MEMBUS` runtime events for the call. R6 release endpoint configurations set `MemBusDebug = 1`; a committed wrapper result with silent endpoint consoles is a package defect.
+
 Expected result:
 
 ```text
