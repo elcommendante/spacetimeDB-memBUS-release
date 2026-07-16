@@ -67,9 +67,9 @@ The current ApiCoordinator in my MMORPG project uses SDK/HTTP callback paths. Pl
 
 ## Why shared memory helps
 
-For colocated trusted processes, memBUS avoids extra loopback socket, HTTP routing, request parsing, and callback-pump layers. It uses a bounded binary SPSC route, atomics, CRC32C, and Windows events.
+For colocated trusted processes, memBUS avoids the public-network and loopback-protocol layers used by a conventional HTTP call. The transport remains bounded, authenticated and local to the Windows host.
 
-Security is narrower because the bus adds no public network listener and named objects are protected for the current Windows user. Safety still comes from layered checks: topology, endpoint/database identity, schema, epoch, sequence, reducer allowlist, destination `ctx.sender`, inbox idempotency, and the normal SpacetimeDB transaction path.
+Security is narrower because the bus adds no public network listener and local objects are restricted to the configured Windows principal. Explicit topology, operation policy, destination validation, idempotency and the normal SpacetimeDB transaction path remain mandatory.
 
 ## Planned topology
 
@@ -79,8 +79,8 @@ See [`MMORPG_MEMBUS_TOPOLOGY.svg`](../MMORPG_MEMBUS_TOPOLOGY.svg). Solid nodes a
 
 The current [R6 benchmark chart](db-membus-benchmark-chart.html), [R1-R6 history](db-membus-release-history-chart.html) and [methodology](benchmarks.md) keep transport-only and full-transaction boundaries separate:
 
-- prepared pre-send to destination dispatch: R6 memBUS P50/P95 `0.0250 / 0.0382 ms`, persistent local HTTP `0.1304 / 0.1755 ms`;
-- prepared pre-send to committed ACK/response: R6 memBUS P50/P95 `0.2762 / 0.4615 ms`, persistent local HTTP `0.4731 / 0.6884 ms`;
-- the matched headline campaign contains five fresh process pairs, 100 warm-up and 1,000 measured calls per path/pair; all 5,000 operations per path committed.
+- prepared pre-send to destination dispatch: Build 12 memBUS P50/P95/P99 `0.0249 / 0.0355 / 0.0455 ms`, persistent local HTTP `0.1674 / 0.2446 / 0.2942 ms`;
+- prepared pre-send to committed ACK/response: Build 12 memBUS P50/P95/P99 `0.1197 / 0.1826 / 0.2245 ms`, persistent local HTTP `0.4084 / 0.6036 / 0.7779 ms`;
+- the matched checkpoint contains three fresh process pairs, 100 warm-up and 1,000 measured calls per path/pair; all 3,000 operations per path committed.
 
-The comparator is plain persistent loopback HTTP, not HTTPS/TLS, and it is never a memBUS fallback. These candidate results describe the documented test host and are not universal guarantees.
+The comparator is plain persistent loopback HTTP, not HTTPS/TLS, and it is never a memBUS fallback. These accepted Build 12 results describe the documented test host and exact benchmark binary; they are not universal guarantees or automatic claims for a differently hashed package rebuild.

@@ -1,5 +1,5 @@
 <meta charset="utf-8">
-<title>SpacetimeDB-memBUS R6 — Superoptimization Latency Comparison</title>
+<title>SpacetimeDB-memBUS R6 — Full End-to-End Latency Checkpoint</title>
 <style>
   @page { size: A4 landscape; margin: 8mm; }
 
@@ -12,7 +12,7 @@
     --ink:       #e8edf7;
     --ink-dim:   #9aa7c2;
     --p50:       #8b5cf6;  /* purple  */
-    --p95:       #c4b5fd;  /* lighter purple */
+    --p99:       #c4b5fd;  /* lighter purple */
     --accent:    #a78bfa;
     --good:      #34d399;
     --plot-h:    290px;
@@ -78,7 +78,7 @@
     vertical-align:-2px;
   }
   .legend .sw-p50{ background:var(--p50); }
-  .legend .sw-p95{ background:var(--p95); }
+  .legend .sw-p99{ background:var(--p99); }
   .legend .note{ margin-left:auto; color:var(--ink-dim); }
 
   /* ---------- charts layout ---------- */
@@ -167,7 +167,7 @@
     box-shadow:0 0 0 1px rgba(255,255,255,.05) inset;
   }
   .bar.p50{ background:linear-gradient(180deg,var(--p50),#6d3fe0); }
-  .bar.p95{ background:linear-gradient(180deg,var(--p95),#a78bfa); }
+  .bar.p99{ background:linear-gradient(180deg,var(--p99),#a78bfa); }
   .bar .val{
     position:absolute;
     top:-16px;
@@ -178,7 +178,7 @@
     color:var(--ink);
     white-space:nowrap;
   }
-  .bar.p95 .val{ color:var(--p95); }
+  .bar.p99 .val{ color:var(--p99); }
 
   /* ---------- x axis labels (own row, no overlap) ---------- */
   .xaxis{
@@ -251,7 +251,7 @@
     font-size:11px;
     white-space:nowrap;
   }
-  .pill.http{ background:rgba(196,181,253,.16); color:var(--p95); }
+  .pill.http{ background:rgba(196,181,253,.16); color:var(--p99); }
   .pill.mem{ background:rgba(52,211,153,.16); color:var(--good); }
 
   footer{
@@ -268,19 +268,20 @@
 
   <header>
     <div>
-      <h1>SpacetimeDB-memBUS <span class="unit">R6 — Superoptimization</span></h1>
-      <div class="subtitle">Binary operation schema v2 + compact authenticated route request v3 vs same-session Persistent HTTP</div>
+      <h1>SpacetimeDB-memBUS <span class="unit">R6 — Latency Optimization Checkpoint</span></h1>
+      <div class="subtitle">Prepared pre-send → destination mutation → transaction commit → commit-aware ACK</div>
     </div>
     <div class="meta">
-      <div>R6 campaign: <b>July 14, 2026 · 5 fresh-process matched pairs</b></div>
+      <div>R6 campaign: <b>July 15, 2026 · 3 fresh-process matched pairs</b></div>
       <div>Per block: <b>100 warm-up + 1,000 measured calls/path</b></div>
+      <div><b>R6 UNPUBLISHED — P99 OPTIMIZATION GATE OPEN</b></div>
       <div>Scale: linear · Unit: <b>ms</b></div>
     </div>
   </header>
 
   <div class="legend">
     <span><span class="swatch sw-p50"></span>P50 latency (ms)</span>
-    <span><span class="swatch sw-p95"></span>P95 latency (ms)</span>
+    <span><span class="swatch sw-p99"></span>P99 latency (ms)</span>
     <span class="note">Two separate charts — transport and full-path values use different scales.</span>
   </div>
 
@@ -289,55 +290,46 @@
     <!-- ============ CHART 1 : transport to dispatch ============ -->
     <section class="card">
       <h2>1 · Transport → dispatch only</h2>
-      <div class="scope">Symmetric prepared pre-send QPC → destination dispatch QPC. Axis 0 – 0.20 ms.</div>
+      <div class="scope">Symmetric prepared pre-send QPC → destination dispatch QPC. Axis 0 – 0.32 ms.</div>
 
       <div class="plot">
         <div class="ylabel">Latency (ms)</div>
 
-        <!-- gridlines: max 0.20, step 0.04 -->
+        <!-- gridlines: max 0.32, step 0.08 -->
         <div class="gridline" style="bottom:0%"><span>0.0</span></div>
-        <div class="gridline" style="bottom:20%"><span>0.04</span></div>
-        <div class="gridline" style="bottom:40%"><span>0.08</span></div>
-        <div class="gridline" style="bottom:60%"><span>0.12</span></div>
-        <div class="gridline" style="bottom:80%"><span>0.16</span></div>
-        <div class="gridline" style="bottom:100%"><span>0.20</span></div>
+        <div class="gridline" style="bottom:25%"><span>0.08</span></div>
+        <div class="gridline" style="bottom:50%"><span>0.16</span></div>
+        <div class="gridline" style="bottom:75%"><span>0.24</span></div>
+        <div class="gridline" style="bottom:100%"><span>0.32</span></div>
 
         <div class="groups">
-          <!-- frozen R5 historical reference -->
+          <!-- accepted Build 12 memBUS checkpoint -->
           <div class="group">
             <div class="bars">
-              <div class="bar p50" style="height:38px"><span class="val">0.0265</span></div>
-              <div class="bar p95" style="height:64px"><span class="val">0.0439</span></div>
+              <div class="bar p50" style="height:23px"><span class="val">0.0249</span></div>
+              <div class="bar p99" style="height:41px"><span class="val">0.0455</span></div>
             </div>
           </div>
-          <!-- R6 median of five run-level percentiles -->
+          <!-- same-session Persistent HTTP from the same three blocks -->
           <div class="group">
             <div class="bars">
-              <div class="bar p50" style="height:36px"><span class="val">0.0250</span></div>
-              <div class="bar p95" style="height:55px"><span class="val">0.0382</span></div>
-            </div>
-          </div>
-          <!-- same-session Persistent HTTP from the five R6 blocks -->
-          <div class="group">
-            <div class="bars">
-              <div class="bar p50" style="height:189px"><span class="val">0.1304</span></div>
-              <div class="bar p95" style="height:254px"><span class="val">0.1755</span></div>
+              <div class="bar p50" style="height:152px"><span class="val">0.1674</span></div>
+              <div class="bar p99" style="height:267px"><span class="val">0.2942</span></div>
             </div>
           </div>
         </div>
       </div>
 
       <div class="xaxis">
-        <div class="xlabel"><strong>R5 reference</strong>frozen July 13 campaign</div>
-        <div class="xlabel"><strong>R6</strong>binary schema v2 · route request v3</div>
-        <div class="xlabel"><strong>Persistent HTTP</strong>same-session R6 blocks</div>
+        <div class="xlabel"><strong>R6 memBUS</strong>authenticated shared-memory transport</div>
+        <div class="xlabel"><strong>Persistent HTTP</strong>same-session matched control</div>
       </div>
     </section>
 
     <!-- ============ CHART 2 : full paths ============ -->
     <section class="card">
       <h2>2 · Full end-to-end paths</h2>
-      <div class="scope">Prepared pre-send → committed response/ACK correlation. Axis 0 – 0.8 ms.</div>
+      <div class="scope">Prepared pre-send → destination mutation → transaction commit → commit-aware ACK. Axis 0 – 0.8 ms.</div>
 
       <div class="plot">
         <div class="ylabel">Latency (ms)</div>
@@ -350,33 +342,25 @@
         <div class="gridline" style="bottom:100%"><span>0.8</span></div>
 
         <div class="groups">
-          <!-- frozen R5 historical reference -->
+          <!-- accepted Build 12 memBUS checkpoint -->
           <div class="group">
             <div class="bars">
-              <div class="bar p50" style="height:134px"><span class="val">0.3689</span></div>
-              <div class="bar p95" style="height:221px"><span class="val">0.6092</span></div>
+              <div class="bar p50" style="height:43px"><span class="val">0.1197</span></div>
+              <div class="bar p99" style="height:81px"><span class="val">0.2245</span></div>
             </div>
           </div>
-          <!-- R6 median of five run-level percentiles -->
+          <!-- same-session Persistent HTTP from the same three blocks -->
           <div class="group">
             <div class="bars">
-              <div class="bar p50" style="height:100px"><span class="val">0.2762</span></div>
-              <div class="bar p95" style="height:167px"><span class="val">0.4615</span></div>
-            </div>
-          </div>
-          <!-- same-session Persistent HTTP from the five R6 blocks -->
-          <div class="group">
-            <div class="bars">
-              <div class="bar p50" style="height:172px"><span class="val">0.4731</span></div>
-              <div class="bar p95" style="height:250px"><span class="val">0.6884</span></div>
+              <div class="bar p50" style="height:148px"><span class="val">0.4084</span></div>
+              <div class="bar p99" style="height:282px"><span class="val">0.7779</span></div>
             </div>
           </div>
         </div>
       </div>
 
       <div class="xaxis">
-        <div class="xlabel"><strong>R5 reference</strong>historical publish → commit → ACK</div>
-        <div class="xlabel"><strong>R6</strong>publish → mutation → commit → ACK</div>
+        <div class="xlabel"><strong>R6 memBUS</strong>publish → mutation → commit → ACK</div>
         <div class="xlabel"><strong>Persistent HTTP</strong>send → mutation → commit → response</div>
       </div>
     </section>
@@ -386,21 +370,21 @@
   <div class="callouts">
     <div class="callout speed">
       <span class="tag">Transport → dispatch only</span>
-      <span class="big">R6 is 5.22× faster at P50</span> than same-session Persistent HTTP.
-      <br>At P95, R6 is <b>4.59× faster</b>. Versus frozen R5, transport improved by <b>5.7% P50</b> and <b>13.0% P95</b>.
+      <span class="big">R6 is 6.72× faster at P50</span> than same-session Persistent HTTP.
+      <br>At P99, R6 is <b>6.47× faster</b> for the same symmetric transport → dispatch boundary.
     </div>
     <div class="callout">
       <span class="tag">Full operation — commit + response/ACK</span>
       <div class="row">
-        <span>At the median: <span class="pill mem">R6 wins P50 · 1.71×</span></span>
-        <span>At the tail: <span class="pill mem">R6 wins P95 · 1.49×</span></span>
+        <span>At the median: <span class="pill mem">R6 wins P50 · 3.41×</span></span>
+        <span>At the tail: <span class="pill mem">R6 wins P99 · 3.47×</span></span>
       </div>
-      All 5,000 measured R6 operations and 5,000 same-session HTTP operations committed. Full R6 latency improved by <b>25.1% P50</b> and <b>24.2% P95</b> versus frozen R5.
+      All 3,000 measured operations per path committed. The 0.1197 ms P50 goal passes; P99 is 0.2245 ms and remains 0.0245 ms above the explicit 0.20 ms gate.
     </div>
   </div>
 
   <footer>
-    SpacetimeDB-memBUS R6 loaded-host benchmark · five fresh-process matched pairs · normal Windows scheduling · R6 and HTTP same-session · R5 historical reference · July 14, 2026
+    SpacetimeDB-memBUS R6 latency checkpoint · median of three fresh-process matched pairs · 100 warm-up + 1,000 measured calls/path/pair · normal Windows scheduling · observed host load 43–55% · R6 and HTTP same-session · July 15, 2026
   </footer>
 
 </div>

@@ -1,40 +1,16 @@
-# Upgrade strategy
+# Upgrade policy
 
-SpacetimeDB-memBUS is ported release by release; it does not blindly update the modified tree.
+SpacetimeDB-memBUS is ported deliberately for each supported SpacetimeDB release.
 
-The public repository does not currently distribute these source trees. This page records the maintainers' clean-intake policy so a future port or source publication does not blur upstream and memBUS ownership.
+For a new upstream version, maintainers:
 
-## Layout model
+1. obtain and verify a clean official source baseline;
+2. build and run the unmodified version;
+3. create a separate modified source tree;
+4. port the stable memBUS components intentionally;
+5. revalidate every version-sensitive integration point;
+6. rerun security, cross-process, recovery, transaction and benchmark gates;
+7. publish a separate versioned package without overwriting earlier evidence.
 
-```text
-baseline/source/<version>     exact unmodified upstream
-baseline/build/<version> - N  baseline proof
-memBUS/source/<version>       modified source
-memBUS/build/<version> - N    implementation builds/evidence
-memBUS/release/<version>-R<N> packaged release
-```
+The project does not blindly merge a previous modified SpacetimeDB tree into a newer release, silently update dependencies or assume private upstream APIs remain compatible.
 
-## Port sequence
-
-1. Obtain the exact new SpacetimeDB source as a clean baseline.
-2. Verify toolchains and locked release build.
-3. Run two unmodified standalone processes on separate ports/data roots.
-4. Copy the stable memBUS transport modules deliberately.
-5. Re-research the new database/leader/module/reducer APIs.
-6. Implement a new narrow version adapter; do not assume v2.6 internals.
-7. Reapply the smallest ABI/bootstrap/C# hooks under the feature flag.
-8. Build stock and MemBus C# modules and inspect final WASM imports.
-9. Run protocol, handshake, adapter, real-process commit, retry/restart, and benchmark gates.
-10. Package a new versioned release without overwriting the prior release.
-
-## Upgrade hazards
-
-- procedure/HTTP host-import linker changes;
-- `ModuleHost::call_reducer` parameter/outcome changes;
-- leader/module lifecycle or cache validity changes;
-- C# AOT import allowlists and generated bindings;
-- standalone startup/delegate/metrics changes;
-- transaction/commit/durability semantics;
-- Windows object or Rust atomic layout changes.
-
-Never merge an old modified SpacetimeDB tree wholesale into a newer upstream release.

@@ -1,5 +1,35 @@
 # Release changelog
 
+## 2.6.1-R6 documentation boundary correction — 2026-07-16
+
+- Reduced the public documentation to stable product behavior, package operation, measured results, supported scope and known limitations.
+- Removed private ABI maps, exact internal operation tables, cryptographic construction details and source-level implementation guidance from the public surface.
+- Corrected the clean-package and retained Windows service evidence status without changing the tested package assembly or ZIP.
+- Added a private engineering index and junior onboarding guide to the development repository; those implementation details are not publicly distributed.
+
+## 2.6.1-R6 history-chart correction — 2026-07-16
+
+- Updated the release-history chart from the superseded July 14 R6 campaign to the accepted Build 12 results.
+- Current chart values are memBUS `0.0249/0.0355 ms` transport and `0.1197/0.1826 ms` full P50/P95 versus persistent local HTTP `0.1674/0.2446 ms` and `0.4084/0.6036 ms`.
+- Recalculated every current bar height and comparison multiplier; historical R1-R5 values remain unchanged.
+
+## 2.6.1-R6 package correction — 2026-07-16
+
+- Replaced the oversized working-state archive with a 289.21 MiB test candidate built from the exact working Build 12 seeds.
+- Removed only regenerable Wasmtime cache, logs, lock files and PID state; both independent endpoint binaries and required database state remain included.
+- Rejected a more aggressive seed reconstruction after it failed clean-extraction E2E with a WASM trap.
+- Reverified package integrity, two-process startup, `TransactionCommitted`, destination inspection, graceful Ctrl+C shutdown and reset.
+- Final ZIP SHA-256: `64dada35ddceb425d8a5b24fa24cdfce592dd01fc124a446a966d76e62cee602`.
+
+## 2.6.1-R6 Build 12 test candidate — 2026-07-16
+
+- Updated the public and bundled documentation to the accepted Build 12 checkpoint: memBUS `0.0249/0.0355/0.0455 ms` transport and `0.1197/0.1826/0.2245 ms` full P50/P95/P99.
+- Recorded the matched persistent-local-HTTP comparator at `0.1674/0.2446/0.2942 ms` transport and `0.4084/0.6036/0.7779 ms` full P50/P95/P99.
+- Prepared a Windows x64 test-candidate assembly with the exact accepted Build 12 seed archives and a freshly rebuilt current-source standalone/security utility.
+- Kept binary identity honest: the packaged rebuild has a different SHA-256 than the retained Build 12 benchmark manifest and does not inherit benchmark acceptance by name.
+- Added the upload-ready ZIP and adjacent SHA-256 to ignored `dist` only after clean-extraction integrity and two-process committed-call verification.
+- Final production/release acceptance and the explicitly gated six-hour soak remain pending.
+
 ## 2.6.1-R6 repository surface — 2026-07-14
 
 - Updated the repository README, public documentation index, release procedures, security/support guidance and issue templates for the R6 candidate.
@@ -14,7 +44,7 @@ Candidate Windows x64 binary distribution based on SpacetimeDB v2.6.1 and the ac
 
 - Added binary application operation schema v2 with fixed `U128` operation IDs, fixed `U256` SHA-256 digests, source-scoped binary outbox/inbox rows and explicit v2 reconciliation operations.
 - Added compact route request v3, reusable producer scratch, single-owned receive payload and lower-observer-effect profiling without changing authenticated Frame v2 or Clockwork Labs core.
-- Retained authenticated route capability handshake, keyed BLAKE3 frame MAC, CRC32C, process/session/sequence validation, explicit reducer allowlist, at-least-once delivery, bounded uncertainty, reconciliation and post-commit ACK.
+- Retained authenticated local routes, integrity and replay protection, explicit destination allowlists, at-least-once delivery, bounded uncertainty, reconciliation and post-commit ACK.
 - Accepted a real two-process v2 correctness campaign covering direct commit, duplicate idempotency, digest conflict, exact 3448-byte application maximum, max+1 rejection, peer loss, fresh PID/session/epoch restart and reconciliation.
 - Measured five fresh matched process pairs: R6 `0.0250 / 0.0382 ms` transport and `0.2762 / 0.4615 ms` full P50/P95 versus same-session persistent local HTTP `0.1304 / 0.1755 ms` and `0.4731 / 0.6884 ms`.
 - Added a candidate package with separate alpha/beta binaries, accepted clean seed pair 4, matching CLI, `membus-security`, package-relative PowerShell start/stop/reset/test scripts, checksums, flow diagram, R6 chart and R1-R6 history chart.

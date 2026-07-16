@@ -2,7 +2,7 @@
 
 ## Candidate package lifecycle
 
-The ignored local R6 assembly is prepared, but the R6 archive/checksum are intentionally absent from `dist` until the project-lead extracted-package test succeeds.
+The R6 archive and adjacent checksum have passed automated clean-extraction verification and are prepared for controlled project-lead testing. They remain test-candidate assets until the project lead accepts the package and the separately gated six-hour soak is completed.
 
 ```text
 verify immutable files
@@ -52,7 +52,7 @@ Visible candidate acceptance should use the two endpoint consoles and Ctrl+C. `S
 
 Capability files and JWT keys are generated locally under `run`; no package secret exists. Do not copy runtime capability/JWT material into bug reports. Logs must not include payload bodies or player data by default.
 
-The interactive current-user profile is not equivalent to service accounts in Session 0. Production service deployment remains a separate elevated manifest/ACL/lifecycle acceptance gate.
+The bundled package is an interactive same-user demonstration. Windows service/Session 0 engineering has separate retained acceptance evidence and is not configured or shipped by this demo package.
 
 ## Evidence to retain for a failed candidate test
 

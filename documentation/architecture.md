@@ -1,59 +1,36 @@
-# Architecture
+# Architecture overview
 
-## Components
+SpacetimeDB-memBUS connects explicitly configured SpacetimeDB processes running on the same Windows machine.
 
-```mermaid
-flowchart TB
-    subgraph Source["Source standalone process"]
-        P["C# v2 procedure + durable outbox"] --> ABI["db_membus_0.1 private async ABI"]
-        ABI --> S["MemBusService"]
-        S --> RP["Request RouteProducer"]
-        RC["Response RouteConsumer"] --> S
-    end
-
-    subgraph Windows["Windows kernel objects"]
-        RQ["Authenticated Frame v2 request mapping + events"]
-        RS["Authenticated Frame v2 response mapping + events"]
-    end
-
-    subgraph Destination["Destination standalone process"]
-        DW["Blocking route waiter"] --> T["Tokio worker"]
-        T --> V["Session/MAC/route/schema/allowlist validation"]
-        V --> MH["ModuleHost::call_reducer"]
-        MH --> TX["Normal transaction + commit"]
-        TX --> AP["Response RouteProducer"]
-    end
-
-    RP --> RQ --> DW
-    AP --> RS --> RC
+```text
+source database process
+-> approved local memBUS route
+-> destination database process
+-> normal destination reducer and transaction
+-> committed response or explicit uncertainty
 ```
 
-## Stable transport versus version adapter
+Each process keeps its own database, memory, transactions, WASM runtime, durability state and lifecycle. Shared memory is used only to transport bounded message data; it never exposes another process's tables, pointers or transaction objects.
 
-The private implementation is divided into:
+## Responsibilities
 
-- `db-membus`: configuration, authenticated frames, compact route request v3, rings, mappings, events, handshakes, routes and metrics;
-- `db-membus-spacetimedb`: source call service, destination invoker, inbound waiters, exact v2.6 integration;
-- thin SpacetimeDB hooks: standalone bootstrap, private host import registration, C# bindings, log formatting.
+- The application decides which business workflow to run.
+- Configuration decides which processes and operations may communicate.
+- memBUS transports and correlates the approved local operation.
+- The destination reducer performs authorization and business validation.
+- SpacetimeDB performs reducer execution, transaction commit, durability and subscription work.
+- Reconciliation resolves operations whose outcome became uncertain after publication.
 
-This separation is the upgrade strategy: preserve the stable transport crate and rewrite only the smallest version-sensitive adapter when moving to a new SpacetimeDB release.
+## Design boundaries
 
-## Isolation rules
+- same physical Windows machine;
+- independent SpacetimeDB processes;
+- explicit routes and destination operation allowlists;
+- bounded messages and admission;
+- at-least-once delivery;
+- no arbitrary reducer gateway;
+- no shared database objects or cross-process transaction;
+- no automatic network or coordinator fallback.
 
-- one principal database remains in each standalone process;
-- no transaction crosses a process boundary;
-- shared memory contains immutable framed bytes and control metadata only;
-- the destination reducer is the security and transaction boundary;
-- source calls are asynchronous and procedure-only;
-- one directed SPSC ring has exactly one producer and one consumer;
-- request-response channels own independent request and response rings.
+Detailed wire layouts, source hooks and internal implementation maps are private engineering material and are not part of this release documentation.
 
-R6 keeps layered authorization: Windows principal and route capability, authenticated session/frame, topology/reducer allowlist, actual source database identity, destination `ctx.sender`, binary-v2 digest and source-scoped inbox.
-
-## Failure domains
-
-Frame parsing, handshake, ring publication, route lifecycle, destination invocation, and reconciliation are separate concerns. A checksum failure cannot become a reducer invocation; a reducer failure cannot be reported as a transport success; a timeout cannot be converted to a committed ACK.
-
-## No fallback policy
-
-If required topology, identity, schema, endpoint, Windows object, worker, or destination database is unavailable, the affected operation fails with a typed error or uncertainty. memBUS never reroutes through HTTP, ApiCoordinator, TCP, named pipes, or a direct datastore write.

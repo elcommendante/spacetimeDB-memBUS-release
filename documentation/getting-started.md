@@ -8,7 +8,7 @@
 - both endpoint processes under the same interactive Windows user/session;
 - approximately 500 MiB free after seed extraction.
 
-The R6 archive is not published yet. Once the project-lead acceptance test is complete and the asset is available, do not run from inside the ZIP. Unblock it in Windows Properties when required, then extract it completely.
+The R6 archive is a controlled test candidate. Do not run from inside the ZIP. Unblock it in Windows Properties when required, then extract it completely.
 
 ## Verify
 
@@ -42,7 +42,7 @@ Expected result:
 "TransactionCommitted"
 ```
 
-Inspect the public effect and private v2 inbox:
+Inspect the public compatibility fixture:
 
 ```powershell
 .\beta\Inspect-Destination.ps1
@@ -73,7 +73,7 @@ For the project-lead test of a locally generated candidate archive, record:
 3. integrity result;
 4. alpha/beta readiness;
 5. exact `Run-MemBus-Test.ps1` output;
-6. destination effect/inbox observation;
+6. destination inspection output;
 7. graceful stop result;
 8. reset result and any visible typed error.
 

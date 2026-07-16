@@ -1,6 +1,6 @@
 # Benchmarks
 
-## Current R6 matched campaign
+## Accepted Build 12 matched checkpoint
 
 **Classification:** candidate, interactive Windows, same machine. It is not SCM/Session 0 evidence and not a universal guarantee.
 
@@ -13,33 +13,22 @@ Both paths execute the same binary-v2 destination mutation: approved sender, SHA
 
 Campaign:
 
-1. five fresh alpha/beta process pairs;
+1. three fresh alpha/beta process pairs;
 2. fresh expanded seeds and newly provisioned authenticated route per pair;
 3. normal Windows scheduling across 20 logical CPUs;
 4. 100 warm-up plus 1,000 measured operations per path/pair;
 5. two-byte application payload;
 6. every operation required a committed result;
-7. report the median of the five run-level nearest-rank P50/P95 values; do not pool samples.
+7. report the median of the three run-level nearest-rank P50/P95/P99 values; do not pool samples.
 
-| Boundary | R6 memBUS P50/P95 | Persistent local HTTP P50/P95 | Speedup P50/P95 |
+| Boundary | memBUS P50/P95/P99 | Persistent local HTTP P50/P95/P99 | Speedup P50/P95/P99 |
 |---|---:|---:|---:|
-| transport -> dispatch | `0.0250 / 0.0382 ms` | `0.1304 / 0.1755 ms` | `5.22x / 4.59x` |
-| full commit -> ACK/response | `0.2762 / 0.4615 ms` | `0.4731 / 0.6884 ms` | `1.71x / 1.49x` |
+| transport -> dispatch | `0.0249 / 0.0355 / 0.0455 ms` | `0.1674 / 0.2446 / 0.2942 ms` | `6.72x / 6.89x / 6.47x` |
+| full commit -> ACK/response | `0.1197 / 0.1826 / 0.2245 ms` | `0.4084 / 0.6036 / 0.7779 ms` | `3.41x / 3.31x / 3.47x` |
 
-All 5,000 memBUS and 5,000 HTTP headline calls committed. Host-load samples were 0-10%.
+All 3,000 memBUS and 3,000 HTTP headline calls committed. Host-load samples were recorded at 43-55% and were not normalized. The full-path P50 target was exceeded; the explicit `<= 0.20 ms P99` target remains open at `0.2245 ms`.
 
-Payload scaling retained a full-path win at 256 B and exact configured maximum 3448 B. A 3449-byte application payload was rejected before publication as `NotPublished:OperationPayloadTooLarge`.
-
-## Tail diagnostic
-
-One additional fresh pair executed 10,000 measured calls/path after warm-up:
-
-| Path | Full P50 | P95 | P99 | P99.9 | Max |
-|---|---:|---:|---:|---:|---:|
-| R6 memBUS | `0.2525` | `0.3533` | `0.5829` | `1.1249` | `13.6173` ms |
-| persistent local HTTP | `0.4524` | `0.6480` | `0.8375` | `1.0497` | `2.9818` ms |
-
-This is a diagnostic, not a repeated tail acceptance campaign. R6 wins through P99; one memBUS outlier raises max and its P99.9 is slightly worse.
+The accepted campaign executable hash is pinned in private evidence, but that executable file was not retained. The downloadable test candidate is a fresh current-source rebuild with a separate hash and has passed its own clean-extraction functional test. This page does not transfer Build 12 performance acceptance to a differently hashed binary or claim identical performance for the packaged rebuild.
 
 ## History chart caveat
 
