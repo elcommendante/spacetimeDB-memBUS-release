@@ -23,7 +23,7 @@ memBUS-ephemeral and memBUS-relay do not need the memBUS transport. The `2.10.0-
 
 Workload: 200 clients, each sending a position update at 20 Hz for 30 s, every client subscribed to all the others. One host, 20 logical CPUs, one run (QUICK tier: regression evidence, not a guarantee).
 
-![Stock SpacetimeDB vs SpacetimeDB-memBUS-ephemeral vs SpacetimeDB-memBUS-relay](documentation/assets/spacetimedb-membus-2.10.0-r1-ephemeral-relay.png)
+![Stock SpacetimeDB vs SpacetimeDB-memBUS-ephemeral vs SpacetimeDB-memBUS-relay](documentation/assets/spacetimedb-membus-2.10.0-r1-stock-vs-ephemeral-vs-relay.png)
 
 | | Stock SpacetimeDB<br>(durable table, reducers, subscriptions) | SpacetimeDB-memBUS-ephemeral<br>(same reducers, ephemeral table) | SpacetimeDB-memBUS-relay<br>(relay channel with AOI) |
 |---|---:|---:|---:|
