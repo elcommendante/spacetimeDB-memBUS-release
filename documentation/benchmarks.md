@@ -6,7 +6,7 @@ Two campaigns stand side by side and must not be mixed: the **2.10.0-R1 Ephemera
 
 **Classification:** QUICK — one host, one campaign, no repetitions, no warm-up window; regression and development evidence, not a release result. **Host:** 20 logical CPUs, 63 GiB, Windows 11, four unrelated idle database processes in the background. **Boundary:** one benchmark process with N raw v2 WebSocket clients → relay-enabled standalone on loopback → same process; publish → deliver latency on one monotonic clock; reducer round trip = call sent → result received. **Fresh database per group** (a durable flood leaves a durability backlog that contaminates the next case — the first campaign proved it and was discarded).
 
-![2.10.0-R1 chart](assets/spacetimedb-membus-2.10.0-r1-ephemeral-relay.png) · interactive: [2.10.0-R1 chart](db-membus-2.10.0-r1-ephemeral-relay-chart.html)
+![Stock vs Ephemeral vs Relay](assets/spacetimedb-membus-2.10.0-r1-ephemeral-relay.png) · interactive: [2.10.0-R1 chart](db-membus-2.10.0-r1-ephemeral-relay-chart.html) (same three-way comparison; the raw rows follow)
 
 ### R01 — relay fan-out with AOI (20 Hz per client, 30 s, 12-byte payload)
 

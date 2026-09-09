@@ -10,6 +10,8 @@
 
 Ephemeral and Relay do not need memBUS. The `2.10.0-R1` package contains the full product build (all three) and a relay-only build (Ephemeral + Relay on a single database process).
 
+**Scope of memBUS: databases on the same machine only.** memBUS connects independent SpacetimeDB processes that run on one Windows host, in the same interactive logon session, through named shared memory. It is not a network transport, has no listener, and never falls back to HTTP, TCP or named pipes. Databases on different machines are out of scope by design. Ephemeral and Relay are per-process features and have no such placement requirement.
+
 > [!WARNING]
 > **2026-09-09 — 2.10.0-R1 is a Windows x64 test candidate on SpacetimeDB v2.10.0.** It has passed automated clean-package verification (two-process committed memBUS calls, relay/ephemeral end-to-end checks, restart contract, graceful shutdown). Project-lead testing, the six-hour soak and final release acceptance remain pending. It is not production-ready.
 
@@ -19,17 +21,29 @@ Ephemeral and Relay do not need memBUS. The `2.10.0-R1` package contains the ful
 
 ## What 2.10.0-R1 measured
 
-![SpacetimeDB-memBUS 2.10.0-R1 ephemeral and relay campaign](documentation/assets/spacetimedb-membus-2.10.0-r1-ephemeral-relay.png)
+Workload: 200 clients, each sending a position update at 20 Hz for 30 s, every client subscribed to all the others. One host, 20 logical CPUs, one run (QUICK tier: regression evidence, not a guarantee).
 
-One QUICK-tier campaign (one host, one run, no repetitions — regression evidence, not a guarantee): 200 clients each sending a position update at 20 Hz for 30 seconds.
+![Stock SpacetimeDB vs SpacetimeDB-Ephemeral vs SpacetimeDB-Relay](documentation/assets/spacetimedb-membus-2.10.0-r1-ephemeral-relay.png)
 
-| Path | P50 / P99 | Server CPU | Commit-log growth in 30 s |
+| | Stock SpacetimeDB<br>(durable table, reducers, subscriptions) | SpacetimeDB-Ephemeral<br>(same reducers, ephemeral table) | SpacetimeDB-Relay<br>(relay channel with AOI) |
 |---|---:|---:|---:|
-| **Relay** channel with AOI (10×10 grid, 14.7 recipients per publish) | `1.04 / 2.21 ms` | ~1 core | `0.15 MB` (connection lifecycle rows only) |
-| Reducer + subscriptions, **Ephemeral** table | `4.36 / 101.7 ms` | ~12 cores | `0.15 MB` (lifecycle only) |
-| Reducer + subscriptions, durable table (the pre-fork pattern) | `9.54 / 18.7 ms` | ~4 cores | `24.75 MB` (0.83 MB/s ≈ 71 GB/day) |
+| Latency P50 | 9.5 ms | 4.4 ms | **1.0 ms** |
+| Latency P99 | 18.7 ms | 101.7 ms * | **2.2 ms** |
+| Server CPU | 4 cores | 12 cores * | **1 core** |
+| Commit log written in 30 s | 24.75 MB (≈ 71 GB/day) | **0 B** | **0 B** |
+| What a subscriber receives | every row | every row | rows from neighbours in AOI range (14.7 per publish) |
 
-Relay fan-out reached 58,744 deliveries/s on the grid and 796,040 deliveries/s in one all-to-all cell (8.7 cores, P99 6.25 ms). Details, caveats and two open anomalies: [Benchmarks](documentation/benchmarks.md). **memBUS transport latency was not re-measured on 2.10.0**; the R6 Build 12 checkpoint (`0.0249 / 0.0455 ms` transport, `0.1197 / 0.2245 ms` full P50/P99) remains the last accepted transport figure and is not transferred to the 2.10.0 binaries.
+\* Known defect, not the design: an offset-less commit does not wake the send path the way a durable commit does (findings R02-C1 and R03-200 in [Benchmarks](documentation/benchmarks.md)). At 50 clients the ephemeral table is already faster than durable (P50 1.3 ms vs 7.6 ms) at equal CPU.
+
+Cross-database calls, memBUS versus the stock alternative (HTTP from a procedure on loopback). R6 Build 12 on SpacetimeDB 2.6.1, not re-measured on 2.10.0:
+
+| | Stock (HTTP from procedure) | SpacetimeDB-memBUS |
+|---|---:|---:|
+| Transport P50 / P99 | 0.167 / 0.294 ms | **0.025 / 0.046 ms** |
+| Full call with destination commit P50 / P99 | 0.408 / 0.778 ms | **0.120 / 0.225 ms** |
+| Throughput, 32 routes × 32 concurrent | 89 k ops/s | **104 k ops/s** |
+
+Interactive chart: [2.10.0-R1](documentation/db-membus-2.10.0-r1-ephemeral-relay-chart.html). Methodology, all rows and caveats: [Benchmarks](documentation/benchmarks.md).
 
 ## Why it exists
 
