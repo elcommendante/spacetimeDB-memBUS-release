@@ -1,6 +1,6 @@
 # SpacetimeDB-memBUS public documentation
 
-**Current candidate:** `2.10.0-R1`, Windows x64, SpacetimeDB v2.10.0 — one fork build with three components: **SpacetimeDB-memBUS** (shared-memory transport), **SpacetimeDB-Ephemeral** (ephemeral tables) and **SpacetimeDB-Relay** (relay channel). Automated clean-package verification has passed; project-lead testing, final acceptance and the six-hour soak remain pending.
+**Current candidate:** `2.10.0-R1`, Windows x64, SpacetimeDB v2.10.0 — one fork build with three components: **SpacetimeDB-memBUS** (shared-memory transport), **SpacetimeDB-memBUS-ephemeral** (ephemeral tables) and **SpacetimeDB-memBUS-relay** (relay channel). Automated clean-package verification has passed; project-lead testing, final acceptance and the six-hour soak remain pending.
 
 - [Getting started](getting-started.md) — package verification, start, the three tests, stop and reset.
 - [Architecture](architecture.md) — process boundaries and what each component owns.

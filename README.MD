@@ -4,13 +4,13 @@
 
 | Component | What it is | Short name used in this repository |
 |---|---|---|
-| **SpacetimeDB-memBUS** | authenticated Windows shared-memory transport for approved reducer calls between independent SpacetimeDB processes on one machine (the original product, R1–R6) | *memBUS* |
-| **SpacetimeDB-Ephemeral** | *ephemeral tables*: a table attribute that keeps rows in server RAM with full transactions, indexes and subscriptions but **never writes them to the commit log**; empty after a restart by contract; durable → ephemeral migration of an existing table by a normal publish | *Ephemeral* |
-| **SpacetimeDB-Relay** | *relay channel*: a non-transactional broadcast lane on the existing client WebSocket with named channels, area-of-interest (AOI) fan-out, per-connection rate limits and an optional server-side bridge reducer; **0 bytes of durability per message** | *Relay* |
+| **SpacetimeDB-memBUS** | authenticated Windows shared-memory transport for approved reducer calls between independent SpacetimeDB processes on one machine (the original product, R1–R6) | *memBUS* (transport) |
+| **SpacetimeDB-memBUS-ephemeral** | *ephemeral tables*: a table attribute that keeps rows in server RAM with full transactions, indexes and subscriptions but **never writes them to the commit log**; empty after a restart by contract; durable → ephemeral migration of an existing table by a normal publish | *memBUS-ephemeral* |
+| **SpacetimeDB-memBUS-relay** | *relay channel*: a non-transactional broadcast lane on the existing client WebSocket with named channels, area-of-interest (AOI) fan-out, per-connection rate limits and an optional server-side bridge reducer; **0 bytes of durability per message** | *memBUS-relay* |
 
-Ephemeral and Relay do not need memBUS. The `2.10.0-R1` package contains the full product build (all three) and a relay-only build (Ephemeral + Relay on a single database process).
+memBUS-ephemeral and memBUS-relay do not need the memBUS transport. The `2.10.0-R1` package contains the full product build (all three) and a relay-only build (Ephemeral + Relay on a single database process).
 
-**Scope of memBUS: databases on the same machine only.** memBUS connects independent SpacetimeDB processes that run on one Windows host, in the same interactive logon session, through named shared memory. It is not a network transport, has no listener, and never falls back to HTTP, TCP or named pipes. Databases on different machines are out of scope by design. Ephemeral and Relay are per-process features and have no such placement requirement.
+**Scope of memBUS: databases on the same machine only.** memBUS connects independent SpacetimeDB processes that run on one Windows host, in the same interactive logon session, through named shared memory. It is not a network transport, has no listener, and never falls back to HTTP, TCP or named pipes. Databases on different machines are out of scope by design. memBUS-ephemeral and memBUS-relay are per-process features and have no such placement requirement.
 
 > [!WARNING]
 > **2026-09-09 — 2.10.0-R1 is a Windows x64 test candidate on SpacetimeDB v2.10.0.** It has passed automated clean-package verification (two-process committed memBUS calls, relay/ephemeral end-to-end checks, restart contract, graceful shutdown). Project-lead testing, the six-hour soak and final release acceptance remain pending. It is not production-ready.
@@ -23,9 +23,9 @@ Ephemeral and Relay do not need memBUS. The `2.10.0-R1` package contains the ful
 
 Workload: 200 clients, each sending a position update at 20 Hz for 30 s, every client subscribed to all the others. One host, 20 logical CPUs, one run (QUICK tier: regression evidence, not a guarantee).
 
-![Stock SpacetimeDB vs SpacetimeDB-Ephemeral vs SpacetimeDB-Relay](documentation/assets/spacetimedb-membus-2.10.0-r1-ephemeral-relay.png)
+![Stock SpacetimeDB vs SpacetimeDB-memBUS-ephemeral vs SpacetimeDB-memBUS-relay](documentation/assets/spacetimedb-membus-2.10.0-r1-ephemeral-relay.png)
 
-| | Stock SpacetimeDB<br>(durable table, reducers, subscriptions) | SpacetimeDB-Ephemeral<br>(same reducers, ephemeral table) | SpacetimeDB-Relay<br>(relay channel with AOI) |
+| | Stock SpacetimeDB<br>(durable table, reducers, subscriptions) | SpacetimeDB-memBUS-ephemeral<br>(same reducers, ephemeral table) | SpacetimeDB-memBUS-relay<br>(relay channel with AOI) |
 |---|---:|---:|---:|
 | Latency P50 | 9.5 ms | 4.4 ms | **1.0 ms** |
 | Latency P99 | 18.7 ms | 101.7 ms * | **2.2 ms** |
@@ -55,11 +55,11 @@ SpacetimeDB-memBUS was created for **my MMORPG project**, which uses colocated d
 
 ## The three components in one paragraph each
 
-**memBUS.** An approved source procedure calls a configured local route; the destination reducer runs through the normal SpacetimeDB `ModuleHost`, transaction, durability and subscription path; the source receives a correlated commit-aware acknowledgement or an explicit uncertainty. Participants, route, schema and destination operation must all be approved. No arbitrary reducer gateway, no HTTP/TCP/named-pipe fallback.
+**memBUS (transport).** An approved source procedure calls a configured local route; the destination reducer runs through the normal SpacetimeDB `ModuleHost`, transaction, durability and subscription path; the source receives a correlated commit-aware acknowledgement or an explicit uncertainty. Participants, route, schema and destination operation must all be approved. No arbitrary reducer gateway, no HTTP/TCP/named-pipe fallback.
 
-**Ephemeral.** `#[table(..., ephemeral)]` (Rust) or `[Table(..., Ephemeral = true)]` (C#). Rows are inserted, updated, deleted, indexed, queried and pushed to subscribers exactly like any table, but a transaction that touches only ephemeral tables consumes no commit-log offset and is never appended; a mixed transaction persists only its durable rows. After a restart the table exists and is empty. Event and scheduled tables cannot be ephemeral. Marking an existing durable table `ephemeral` in a later publish is accepted as an automatic migration (rows cleared, flag flipped inside the publish transaction); the reverse is rejected.
+**memBUS-ephemeral.** `#[table(..., ephemeral)]` (Rust) or `[Table(..., Ephemeral = true)]` (C#). Rows are inserted, updated, deleted, indexed, queried and pushed to subscribers exactly like any table, but a transaction that touches only ephemeral tables consumes no commit-log offset and is never appended; a mixed transaction persists only its durable rows. After a restart the table exists and is empty. Event and scheduled tables cannot be ephemeral. Marking an existing durable table `ephemeral` in a later publish is accepted as an automatic migration (rows cleared, flag flipped inside the publish transaction); the reverse is rejected.
 
-**Relay.** A client subscribes to a channel with an AOI position, publishes opaque payloads, and receives `Deliver`, `Enter`, `Leave`, `SubscribeApplied` and `Error` messages on the same socket. The server keeps membership in a grid per channel, fans out to neighbouring cells, thins crowded cells, enforces payload/rate/channel limits, and optionally calls a **bridge reducer** once per interval with the last payload per sender so the module can mirror relay state into an (ephemeral) table. Wire messages are appended after the upstream protocol variants, so stock clients keep working and a stock SDK simply never sees relay frames.
+**memBUS-relay.** A client subscribes to a channel with an AOI position, publishes opaque payloads, and receives `Deliver`, `Enter`, `Leave`, `SubscribeApplied` and `Error` messages on the same socket. The server keeps membership in a grid per channel, fans out to neighbouring cells, thins crowded cells, enforces payload/rate/channel limits, and optionally calls a **bridge reducer** once per interval with the last payload per sender so the module can mirror relay state into an (ephemeral) table. Wire messages are appended after the upstream protocol variants, so stock clients keep working and a stock SDK simply never sees relay frames.
 
 ## Release package quick start
 
@@ -110,7 +110,7 @@ A single-process Ephemeral + Relay endpoint without memBUS: `.\relay-only\Start-
 
 - **R1–R6 (SpacetimeDB 2.6.1):** shared-memory proof of concept → matched measurement → authenticated routes → bounded uncertainty and recovery → multi-route operations → compact operations (see the history chart).
 - **2.8.3 port:** lane diagnosis, `fast`/`full-safety` channel profiles, database-to-database comparator (private evidence).
-- **2.10.0-R1:** port to SpacetimeDB v2.10.0 plus **SpacetimeDB-Ephemeral** and **SpacetimeDB-Relay**.
+- **2.10.0-R1:** port to SpacetimeDB v2.10.0 plus **SpacetimeDB-memBUS-ephemeral** and **SpacetimeDB-memBUS-relay**.
 
 ## Remaining acceptance work
 

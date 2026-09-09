@@ -6,7 +6,7 @@ SpacetimeDB-memBUS 2.10.0-R1 is based on SpacetimeDB 2.10.0. The upstream work i
 
 The SpacetimeDB 2.10.0 Additional Use Grant permits use when an application or service uses no more than **one SpacetimeDB instance in production** and is not used for a Database Service as defined by that licence.
 
-SpacetimeDB-memBUS (the transport) intentionally connects multiple independent server processes on one machine. That topology is outside the one-production-instance grant unless another right applies. SpacetimeDB-Ephemeral and SpacetimeDB-Relay are per-process features; running them on a single production instance does not by itself leave the grant, but the rest of your deployment must still comply. Before production use, obtain a commercial licence or another applicable written arrangement from Clockwork Laboratories. Local execution or public download does not grant additional production rights.
+SpacetimeDB-memBUS (the transport) intentionally connects multiple independent server processes on one machine. That topology is outside the one-production-instance grant unless another right applies. SpacetimeDB-memBUS-ephemeral and SpacetimeDB-memBUS-relay are per-process features; running them on a single production instance does not by itself leave the grant, but the rest of your deployment must still comply. Before production use, obtain a commercial licence or another applicable written arrangement from Clockwork Laboratories. Local execution or public download does not grant additional production rights.
 
 ## Required reading
 

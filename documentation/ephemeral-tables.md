@@ -1,4 +1,4 @@
-# SpacetimeDB-Ephemeral — ephemeral tables
+# SpacetimeDB-memBUS-ephemeral — ephemeral tables
 
 An **ephemeral table** is a normal SpacetimeDB table whose rows are never written to the commit log. It is the right shape for state that is *live by definition* — presence, movement segments, animation state, casts in flight, combat events, AI motion, targets — where the durable truth lives elsewhere (a checkpoint table, a persistence database) or is simply recreated after a restart.
 

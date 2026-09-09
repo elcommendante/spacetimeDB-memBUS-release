@@ -6,7 +6,7 @@ SpacetimeDB-memBUS is one fork build of SpacetimeDB with three independent compo
                          ┌─────────────────────────── one database process ───────────────────────────┐
 clients (WebSocket) ───► │ client API ── subscriptions ── ModuleHost/reducers ── datastore ── commit log │
                          │      │                              ▲                     │                  │
-                         │      │  SpacetimeDB-Relay           │ bridge reducer      │ SpacetimeDB-Ephemeral
+                         │      │  memBUS-relay                │ bridge reducer      │ memBUS-ephemeral
                          │      └─ channel hub, AOI grid ──────┘ (per interval)      └─ rows flagged ephemeral:
                          │         rate limits, fan-out                                 transactional + subscribed,
                          │         (never a transaction)                                never appended
@@ -19,7 +19,7 @@ clients (WebSocket) ───► │ client API ── subscriptions ── Modu
                          └────────────────────────────────────────────────────────────────────────────┘
 ```
 
-## memBUS
+## memBUS (transport)
 
 ```text
 source database process
@@ -31,11 +31,11 @@ source database process
 
 Each process keeps its own database, memory, transactions, WASM runtime, durability state and lifecycle. Shared memory transports bounded message data only; it never exposes another process's tables, pointers or transaction objects.
 
-## Ephemeral
+## memBUS-ephemeral (ephemeral tables)
 
 The datastore marks a table ephemeral from the module definition (a dedicated definition section, a system table `st_ephemeral_table`, and an in-memory set consulted on every commit). Rows flow through the ordinary transaction, index and subscription machinery. The one difference is at the durability boundary: entries of ephemeral tables are excluded from what the commit log receives, a transaction that touched only ephemeral tables takes no offset, and replay restores the schema but no rows.
 
-## Relay
+## memBUS-relay (relay channel)
 
 The relay hub lives in the client-connection layer. It owns channel membership (a grid per channel), the per-connection token bucket, the AOI fan-out and crowd thinning, and the optional bridge that calls a module reducer once per interval through the public `ModuleHost` call path with the database identity as caller. Relay frames are pushed onto a connection's outgoing queue with the existing bounded non-transactional send; they never enter the transaction broadcast queue.
 

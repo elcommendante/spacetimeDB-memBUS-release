@@ -33,7 +33,7 @@
     </div>
     <div class="meta"><div>Campaign: <b>September 9, 2026 · QUICK tier</b></div><div>One host (20 logical CPUs) · one run · <b>no repetitions</b></div></div>
   </header>
-  <div class="legend"><span><i class="sw" style="background:var(--stock)"></i>Stock SpacetimeDB (durable table, reducers, subscriptions)</span><span><i class="sw" style="background:var(--eph)"></i>SpacetimeDB-Ephemeral (same reducers, ephemeral table)</span><span><i class="sw" style="background:var(--relay)"></i>SpacetimeDB-Relay (relay channel with AOI)</span></div>
+  <div class="legend"><span><i class="sw" style="background:var(--stock)"></i>Stock SpacetimeDB (durable table, reducers, subscriptions)</span><span><i class="sw" style="background:var(--eph)"></i>SpacetimeDB-memBUS-ephemeral (same reducers, ephemeral table)</span><span><i class="sw" style="background:var(--relay)"></i>SpacetimeDB-memBUS-relay (relay channel with AOI)</span></div>
 
   <div class="grid">
     <section class="card"><h2>Latency P50, ms</h2>
@@ -63,7 +63,7 @@
   </div>
 
   <table>
-    <thead><tr><th></th><th>Stock SpacetimeDB<br>durable table, reducers, subscriptions</th><th>SpacetimeDB-Ephemeral<br>same reducers, ephemeral table</th><th>SpacetimeDB-Relay<br>relay channel with AOI</th></tr></thead>
+    <thead><tr><th></th><th>Stock SpacetimeDB<br>durable table, reducers, subscriptions</th><th>SpacetimeDB-memBUS-ephemeral<br>same reducers, ephemeral table</th><th>SpacetimeDB-memBUS-relay<br>relay channel with AOI</th></tr></thead>
     <tbody>
       <tr><td>Latency P50</td><td>9.5 ms</td><td>4.4 ms</td><td><b>1.0 ms</b></td></tr>
       <tr><td>Latency P99</td><td>18.7 ms</td><td>101.7 ms *</td><td><b>2.2 ms</b></td></tr>

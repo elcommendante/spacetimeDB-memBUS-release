@@ -1,4 +1,4 @@
-# SpacetimeDB-Relay — relay channel
+# SpacetimeDB-memBUS-relay — relay channel
 
 The **relay channel** is a non-transactional broadcast lane on the client WebSocket a SpacetimeDB client already holds. A client joins a named channel at an area-of-interest (AOI) position, publishes small opaque payloads, and receives the payloads of its neighbours. Nothing on this lane is a transaction, a table row or a commit-log record. It exists for presentation traffic that must be frequent and cheap — movement, rotation, casts, emotes — while authority stays with reducers.
 
