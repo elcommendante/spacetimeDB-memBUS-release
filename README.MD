@@ -49,7 +49,7 @@ Interactive chart: [2.10.0-R1](documentation/db-membus-2.10.0-r1-ephemeral-relay
 
 SpacetimeDB-memBUS was created for **my MMORPG project**, which uses colocated databases with explicit ownership. `PersistenceDB` owns durable character, inventory, equipment and progression truth. Regional GameWorld databases receive thin, validated gameplay projections. An ApiCoordinator owns cross-database workflows.
 
-2.10.0 added what the game world needed next: the 20 Hz movement, rotation and cast traffic of every player used to be reducer calls into durable tables that every zone subscriber received — one long session wrote ~350 GB of commit log. With **Ephemeral** the live tables (movement segments, anim state, casts, combat events, monster motion, targets) stay in RAM; with **Relay** the presentation stream never becomes a transaction at all, and a 5-second scheduled reducer checkpoints positions durably. memBUS remains the lane for approved commands between colocated databases.
+2.10.0 added what the game world needed next: the 20 Hz movement, rotation and cast traffic of every player used to be reducer calls into durable tables that every zone subscriber received. With **Ephemeral** the live tables (movement segments, anim state, casts, combat events, monster motion, targets) stay in RAM; with **Relay** the presentation stream never becomes a transaction at all, and a 5-second scheduled reducer checkpoints positions durably. memBUS remains the lane for approved commands between colocated databases.
 
 ![My MMORPG project's target multi-database topology](MMORPG_MEMBUS_TOPOLOGY.svg)
 
