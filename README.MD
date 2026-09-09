@@ -17,7 +17,7 @@ memBUS-ephemeral and memBUS-relay do not need the memBUS transport. The `2.10.0-
 
 > **Current candidate:** `2.10.0-R1` — Windows x64, SpacetimeDB v2.10.0. Previous candidate: `2.6.1-R6` (SpacetimeDB v2.6.1), kept in [CHANGELOG.md](CHANGELOG.md).
 
-> **Production licensing notice:** SpacetimeDB 2.10.0 is distributed under the Business Source License 1.1. Its Additional Use Grant permits an application or service to use no more than **one SpacetimeDB instance in production** and excludes use as a Database Service. memBUS is designed for multiple independent instances, so a production multi-instance topology requires a commercial licence or another applicable arrangement from Clockwork Laboratories. Ephemeral and Relay on a single instance stay inside the grant only if the rest of your deployment does. Review [`LICENSE.txt`](LICENSE.txt), the [upstream licence](https://github.com/clockworklabs/SpacetimeDB/blob/v2.10.0/LICENSE.txt), and obtain qualified advice.
+> **Production licensing notice:** SpacetimeDB 2.10.0 is distributed under the Business Source License 1.1. Its Additional Use Grant permits an application or service to use no more than **one SpacetimeDB instance in production** and excludes use as a Database Service. memBUS is designed for multiple independent instances, so a production multi-instance topology requires a commercial licence or another applicable arrangement from Clockwork Laboratories. memBUS-ephemeral and memBUS-relay on a single instance stay inside the grant only if the rest of your deployment does. Review [`LICENSE.txt`](LICENSE.txt), the [upstream licence](https://github.com/clockworklabs/SpacetimeDB/blob/v2.10.0/LICENSE.txt), and obtain qualified advice.
 
 ## What 2.10.0-R1 measured
 
@@ -81,7 +81,7 @@ After both black endpoint consoles show magenta `MEMBUS` route-ready messages:
 .\Reset-Demo.ps1
 ```
 
-A single-process Ephemeral + Relay endpoint without memBUS: `.\relay-only\Start-RelayOnly.ps1`, then `.\Run-Relay-Test.ps1 -Target relay-only`. See [Getting started](documentation/getting-started.md).
+A single-process memBUS-ephemeral + memBUS-relay endpoint without the memBUS transport: `.\relay-only\Start-RelayOnly.ps1`, then `.\Run-Relay-Test.ps1 -Target relay-only`. See [Getting started](documentation/getting-started.md).
 
 ## Commands at a glance
 
@@ -91,7 +91,7 @@ A single-process Ephemeral + Relay endpoint without memBUS: `.\relay-only\Start-
 | Package | `Run-MemBus-Test.ps1` | committed alpha → beta calls through memBUS |
 | Package | `Run-Relay-Test.ps1` | relay + ephemeral end-to-end checks against alpha or the relay-only endpoint |
 | Package | `Run-Ephemeral-Restart-Test.ps1` | restart contract of ephemeral tables |
-| Package | `relay-only\Start-RelayOnly.ps1` | Ephemeral + Relay on one database process, no memBUS |
+| Package | `relay-only\Start-RelayOnly.ps1` | memBUS-ephemeral + memBUS-relay on one database process, no memBUS transport |
 | Package | `Stop-Demo.ps1`, `Reset-Demo.ps1` | graceful stop; remove generated state only |
 | Standalone | `--membus-config <topology.toml> --membus-endpoint <name>` | enable memBUS for this process |
 | Standalone | `--membus-relay-config <relay.toml>` | relay limits and channels (required in every relay-enabled build) |
