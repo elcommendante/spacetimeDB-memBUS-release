@@ -65,6 +65,19 @@ Target separation:
 
 The current ApiCoordinator in my MMORPG project uses SDK/HTTP callback paths. Planned integration will route selected high-frequency or latency-sensitive database hops through memBUS while preserving existing operation contracts. It will not silently fall back to the old path when a memBUS route fails.
 
+## What 2.10.0 changed in the game world (Ephemeral + Relay)
+
+The region database used to receive every player's movement, rotation and cast as reducer calls into durable `*_live` tables that every zone subscriber received; one long session wrote about 350 GB of commit log. On the fork:
+
+| Traffic | Before | Now |
+|---|---|---|
+| movement segments, anim state, casts, combat events, monster motion/barks, targets, trade requests, dialogue results, territory announcements (13 tables) | durable rows, every write in the commit log | **Ephemeral** tables: same reducers, same subscriptions, 0 bytes on disk, empty after restart and recreated by connect/enter/tick |
+| 20 Hz presentation stream (position, yaw, speed, flags; 32-byte payload) | reducer per boundary | **Relay** channel `zone/<ZoneId>` with AOI; a bridge reducer mirrors the last sample per player once a second into an ephemeral table |
+| durable position | every accepted segment | a 5-second scheduled reducer copies changed positions into the durable presence row; loss on crash ≤ 5 s |
+| movement authority (allowance, anti-cheat) | `SetMovementSegment` reducer | unchanged; the relay is presentation only |
+
+The migration itself was one publish per module: 13 tables flipped with the automatic `becomes ephemeral` migration on a database replayed from the previous version (192,024 transactions), the client gained a relay layer on its existing GameWorld WebSocket, and no data directory was reset. memBUS between the databases stays for approved commands; its transport is not yet enabled in that deployment because the Rust modules have no memBUS bindings and every cross-database flow there is a 30-second batch.
+
 ## Why shared memory helps
 
 For colocated trusted processes, memBUS avoids the public-network and loopback-protocol layers used by a conventional HTTP call. The transport remains bounded, authenticated and local to the Windows host.
@@ -77,7 +90,9 @@ See [`MMORPG_MEMBUS_TOPOLOGY.svg`](../MMORPG_MEMBUS_TOPOLOGY.svg). Solid nodes a
 
 ## Performance evidence
 
-The current [R6 benchmark chart](db-membus-benchmark-chart.html), [R1-R6 history](db-membus-release-history-chart.html) and [methodology](benchmarks.md) keep transport-only and full-transaction boundaries separate:
+Ephemeral + Relay (2.10.0-R1, QUICK tier): 200 players at 20 Hz cost ~1 server core and 1 ms P50 through the relay with AOI, versus 4–12 cores, 4–100 ms and (durable) 71 GB/day through reducers and zone subscriptions. See [Ephemeral tables](ephemeral-tables.md), [Relay channel](relay-channel.md) and [Benchmarks](benchmarks.md).
+
+memBUS transport (R6 Build 12, SpacetimeDB 2.6.1): the [R6 benchmark chart](db-membus-benchmark-chart.html), [R1-R6 history](db-membus-release-history-chart.html) and [methodology](benchmarks.md) keep transport-only and full-transaction boundaries separate:
 
 - prepared pre-send to destination dispatch: Build 12 memBUS P50/P95/P99 `0.0249 / 0.0355 / 0.0455 ms`, persistent local HTTP `0.1674 / 0.2446 / 0.2942 ms`;
 - prepared pre-send to committed ACK/response: Build 12 memBUS P50/P95/P99 `0.1197 / 0.1826 / 0.2245 ms`, persistent local HTTP `0.4084 / 0.6036 / 0.7779 ms`;

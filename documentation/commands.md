@@ -1,61 +1,80 @@
-# Command reference — 2.6.1-R6 candidate
+# Command reference — 2.10.0-R1 candidate
 
 Run these commands from PowerShell in the extracted package directory. The package is a controlled Windows x64 test candidate, not a production release.
 
-## Verify package integrity
+## Package scripts
 
-```powershell
-.\Test-PackageIntegrity.ps1
+| Command | Purpose |
+|---|---|
+| `.\Test-PackageIntegrity.ps1` | checks every packaged file against `SHA256SUMS.txt`; a missing, modified or unexpected file fails |
+| `.\Start-Demo.ps1 [-Headless]` | integrity, free-port check, `run\topology.resolved.toml`, route capabilities, **session JWT key pair**, seed restore, alpha (3910) and beta (3920) consoles |
+| `.\Run-MemBus-Test.ps1 [-Calls 3]` | anonymous calls of `membus_send_critical_v2` on alpha; each must return `TransactionCommitted` |
+| `.\beta\Inspect-Destination.ps1` | anonymous read of the public fixture table on beta |
+| `.\Run-Relay-Test.ps1 [-Target alpha\|relay-only] [-DatabaseName relaydemo]` | publishes the relay/ephemeral demo module and runs the raw-WebSocket smoke client; every `CHECK` must PASS |
+| `.\Run-Ephemeral-Restart-Test.ps1 [-Target alpha\|relay-only]` | graceful restart of the endpoint; durable row replayed, ephemeral table empty |
+| `.\relay-only\Start-RelayOnly.ps1 [-ListenAddress 127.0.0.1:3930]` | single-process Ephemeral + Relay endpoint without memBUS |
+| `.\Stop-Demo.ps1` | Ctrl+C to relay-only, beta, alpha (exact PID files); never force-kills |
+| `.\Reset-Demo.ps1` | refuses live PIDs; removes generated data, `run` folders, capabilities and session JWT keys only |
+| `.\alpha\Start-Alpha.ps1 [-CpuIndex n]`, `.\beta\Start-Beta.ps1` | endpoint consoles used by the launcher; `-CpuIndex` is an explicit experiment |
+| `.\tools\New-JwtKeyPair.ps1 -OutputDirectory <dir>` | generates the P-256 pair the 2.10.0 standalone requires (`id_ecdsa`, `id_ecdsa.pub`) |
+
+## Standalone flags added by the fork
+
+```text
+spacetimedb-standalone.exe start
+    --listen-addr 127.0.0.1:3910 --data-dir <dir>
+    --jwt-pub-key-path <id_ecdsa.pub> --jwt-priv-key-path <id_ecdsa>   # 2.10.0 requires explicit key paths
+    --non-interactive
+    --membus-config <topology.toml> --membus-endpoint <name>            # memBUS (product build only)
+    --membus-relay-config <relay.toml>                                   # Relay (required in every relay-enabled build)
 ```
 
-Checks every packaged file against `SHA256SUMS.txt`. A missing, modified or unexpected file fails with a non-zero exit status.
+`spacetimedb-standalone-relay-only.exe` accepts the same flags minus the two memBUS ones. A missing relay file, an unknown key or a channel-less relay file fails startup; there is no default relay configuration.
 
-## Start the two endpoints
-
-```powershell
-.\Start-Demo.ps1
-```
-
-Starts two independent local SpacetimeDB processes on the documented demo ports and creates package-local runtime state. Wait until both consoles report `MEMBUS ... runtime ready`.
-
-For automated local evaluation, `-Headless` is available. Visible consoles are recommended for manual candidate acceptance.
-
-## Run the memBUS sample
+## Security utility
 
 ```powershell
-.\Run-MemBus-Test.ps1
+.\tools\membus-security.exe list-routes --topology <resolved.toml> --endpoint alpha
+.\tools\membus-security.exe provision-route --topology <resolved.toml> --endpoint <owner> --capability-directory <dir> --route-id <id> --not-before-utc-ms <ms> --not-after-utc-ms <ms>
+.\tools\membus-security.exe --help
 ```
 
-Executes the bundled approved database-to-database operation and requires a committed destination result. It returns non-zero for rejection, timeout, unavailable routes or any other non-committed outcome.
+The launcher runs exactly these for the bundled routes. Do not expose generated capability material.
 
-## Inspect the destination
+## SpacetimeDB CLI (stock 2.10.0)
 
 ```powershell
-.\beta\Inspect-Destination.ps1
+.\tools\spacetimedb-cli.exe call --anonymous -s http://127.0.0.1:3910 --no-config <db> membus_send_critical_v2 beta alpha-beta <operation-id> '[71,79]'
+.\tools\spacetimedb-cli.exe sql  --anonymous -s http://127.0.0.1:3910 --no-config relaydemo 'SELECT * FROM st_ephemeral_table'
+.\tools\spacetimedb-cli.exe publish <name> --server http://127.0.0.1:3910 --module-path <module> --delete-data=never --yes=remote,migrate,break-clients,skip-login
 ```
 
-Performs a read-only inspection of the demo destination so the committed operation can be confirmed independently.
+A publish that turns an existing durable table ephemeral prints `Changed table <name> becomes ephemeral (existing rows cleared; …)` in its migration plan and needs the `migrate` confirmation. Never use `--delete-data`.
 
-## Stop and reset
+## Module declarations
 
-```powershell
-.\Stop-Demo.ps1
-.\Reset-Demo.ps1
+```rust
+#[spacetimedb::table(accessor = presence_live, public, ephemeral)]   // Rust
 ```
 
-`Stop-Demo.ps1` requests graceful shutdown and waits for the known package processes. `Reset-Demo.ps1` refuses to run while they are live and removes only generated package-local state.
-
-## Optional comparator sample
-
-```powershell
-.\alpha\Send-LocalHttpSample.ps1 -BearerToken '<approved-identity-token>'
+```csharp
+[SpacetimeDB.Table(Name = "presence_live", Public = true, Ephemeral = true)]   // C#
 ```
 
-Runs the bundled persistent loopback HTTP comparator. No token ships in the package, and HTTP is never used as a memBUS fallback.
+```csharp
+var result = ctx.MemBus.Call(target: configuredTarget, channel: configuredChannel, reducer: approvedOperation,
+                             payload: serializedPayload, timeout: deadline, operationId: stableOperationId);   // memBUS, procedure-only
+```
 
-## Advanced utilities
+## Relay client operations
 
-The package includes a security utility used by the launcher to provision its fixed demo routes. Its advanced lifecycle commands are intended for controlled evaluation only; use `\.\tools\membus-security.exe --help` and do not expose generated capability material.
+| Operation | Fields | Answer |
+|---|---|---|
+| `RelaySubscribe` | `request_id, channel, x, y` | `RelaySubscribeApplied { request_id, channel, neighbors }` or `RelayError` |
+| `RelayUnsubscribe` | `request_id, channel` | silent success or `RelayError` |
+| `RelayPublish` | `channel, x, y, payload` | fire-and-forget; rejection arrives as `RelayError { request_id: 0 }` |
+| server → client | `RelayDeliver { channel, sender, server_micros, payload }`, `RelayEnter { channel, neighbor }`, `RelayLeave { channel, identity }` | — |
 
-The exact private ABI, operation schema, host adapter and reducer implementation are intentionally documented only in the private development repository.
+The fork's Rust SDK exposes them as `conn.relay().subscribe/unsubscribe/publish` and `on_relay_*` callbacks; `tools\membus-relay-smoke.exe` is a complete raw-WebSocket reference client (`membus-relay-smoke.exe <http-base> <wasm> <db-name> <data-dir>`).
 
+The exact private ABI, host adapter and reducer implementation are intentionally documented only in the private development repository.

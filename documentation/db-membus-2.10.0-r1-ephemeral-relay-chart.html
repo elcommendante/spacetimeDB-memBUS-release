@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>SpacetimeDB-memBUS 2.10.0-R1 — Ephemeral + Relay QUICK campaign</title>
+<style>
+  :root{ --bg:#0a0e17; --panel:#111827; --panel2:#0d1320; --grid:#26304a; --axis:#4b5872; --ink:#e8edf7; --dim:#9aa7c2;
+         --violet:#8b5cf6; --lav:#c4b5fd; --amber:#f59e0b; --green:#34d399; --red:#f87171; }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{background:var(--bg);color:var(--ink);font-family:"Segoe UI",Inter,system-ui,sans-serif}
+  .sheet{max-width:1240px;margin:0 auto;padding:22px 24px 30px}
+  header{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:2px solid var(--violet);padding-bottom:8px;margin-bottom:14px}
+  h1{font-size:22px} h1 span{color:var(--violet)} .sub{font-size:12px;color:var(--dim);margin-top:3px}
+  .meta{text-align:right;font-size:11px;color:var(--dim);line-height:1.5} .meta b{color:var(--ink)}
+  .grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px}
+  .card{background:linear-gradient(180deg,var(--panel),var(--panel2));border:1px solid var(--grid);border-radius:10px;padding:12px 14px}
+  .card h2{font-size:14px;margin-bottom:2px} .card .scope{font-size:11px;color:var(--dim);margin-bottom:10px}
+  svg{width:100%;height:auto;display:block}
+  .bar50{fill:var(--violet)} .bar99{fill:var(--lav)} .bad{fill:var(--red)} .good{fill:var(--green)} .amber{fill:var(--amber)}
+  .lbl{font-size:10px;fill:var(--dim)} .val{font-size:10px;fill:var(--ink);font-weight:600} .axis{stroke:var(--axis);stroke-width:1.2}
+  .gridline{stroke:var(--grid);stroke-dasharray:3 3}
+  .legend{display:flex;gap:18px;font-size:12px;margin:0 0 10px} .sw{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+  .notes{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-top:14px}
+  .note{background:var(--panel);border:1px solid var(--grid);border-radius:8px;padding:10px 12px;font-size:12px;line-height:1.5}
+  .note b{color:var(--lav)} .warn{border-color:var(--amber)}
+  table{width:100%;border-collapse:collapse;font-size:11px;margin-top:14px} th,td{border-bottom:1px solid var(--grid);padding:5px 6px;text-align:right} th:first-child,td:first-child{text-align:left} th{color:var(--dim);font-weight:600}
+  .foot{display:flex;justify-content:space-between;font-size:10px;color:var(--dim);margin-top:14px}
+</style>
+</head>
+<body>
+<div class="sheet">
+  <header>
+    <div>
+      <h1>SpacetimeDB-memBUS <span>2.10.0-R1 — SpacetimeDB-Ephemeral + SpacetimeDB-Relay</span></h1>
+      <div class="sub">200 clients × 20 Hz position updates for 30 s: relay channel with AOI vs reducers + subscriptions on ephemeral and durable tables</div>
+    </div>
+    <div class="meta">
+      <div>Campaign: <b>September 9, 2026 · QUICK tier</b></div>
+      <div>One host · one run · <b>no repetitions</b></div>
+      <div>20 logical CPUs · Windows 11 · loopback</div>
+      <div><b>memBUS transport not re-measured on 2.10.0</b></div>
+    </div>
+  </header>
+  <div class="legend"><span><i class="sw" style="background:var(--violet)"></i>P50</span><span><i class="sw" style="background:var(--lav)"></i>P99</span><span><i class="sw" style="background:var(--red)"></i>durable disk</span><span><i class="sw" style="background:var(--green)"></i>0 B from traffic</span><span><i class="sw" style="background:var(--amber)"></i>host-limited</span></div>
+
+  <div class="grid">
+    <section class="card">
+      <h2>1 · Latency, 200 clients × 20 Hz</h2>
+      <div class="scope">Relay: publish → deliver. Reducer: call → result. Log axis 0.5–300 ms.</div>
+      <svg viewBox="0 0 400 260" role="img" aria-label="Latency P50 and P99 for relay, ephemeral reducer and durable reducer">
+        <!-- log scale: y = 236 - (log10(v)-log10(0.5)) * 200/log10(600) ; log10(600)=2.778 ; scale 72.0 px per decade -->
+        <line x1="40" y1="20" x2="40" y2="236" class="axis"/><line x1="40" y1="236" x2="390" y2="236" class="axis"/>
+        <line x1="40" y1="214.3" x2="390" y2="214.3" class="gridline"/><text x="36" y="217" text-anchor="end" class="lbl">1</text>
+        <line x1="40" y1="142.3" x2="390" y2="142.3" class="gridline"/><text x="36" y="145" text-anchor="end" class="lbl">10</text>
+        <line x1="40" y1="70.3" x2="390" y2="70.3" class="gridline"/><text x="36" y="73" text-anchor="end" class="lbl">100</text>
+        <!-- relay: p50 1.04 -> 213.1 ; p99 2.21 -> 189.5 -->
+        <rect x="62" y="213.1" width="40" height="22.9" rx="3" class="bar50"/><text x="82" y="209" text-anchor="middle" class="val">1.04</text>
+        <rect x="106" y="189.5" width="40" height="46.5" rx="3" class="bar99"/><text x="126" y="185" text-anchor="middle" class="val">2.21</text>
+        <text x="104" y="252" text-anchor="middle" class="lbl">Relay + AOI · ~1 core</text>
+        <!-- ephemeral reducer: p50 4.36 -> 168.3 ; p99 101.7 -> 69.8 -->
+        <rect x="178" y="168.3" width="40" height="67.7" rx="3" class="bar50"/><text x="198" y="164" text-anchor="middle" class="val">4.36</text>
+        <rect x="222" y="69.8" width="40" height="166.2" rx="3" class="bar99"/><text x="242" y="65" text-anchor="middle" class="val">101.7</text>
+        <text x="220" y="252" text-anchor="middle" class="lbl">Reducer, ephemeral · ~12 cores</text>
+        <!-- durable reducer: p50 9.54 -> 143.8 ; p99 18.7 -> 122.8 -->
+        <rect x="294" y="143.8" width="40" height="92.2" rx="3" class="bar50"/><text x="314" y="139" text-anchor="middle" class="val">9.54</text>
+        <rect x="338" y="122.8" width="40" height="113.2" rx="3" class="bar99"/><text x="358" y="118" text-anchor="middle" class="val">18.7</text>
+        <text x="336" y="252" text-anchor="middle" class="lbl">Reducer, durable · ~4 cores</text>
+      </svg>
+    </section>
+
+    <section class="card">
+      <h2>2 · Commit-log growth in 30 s</h2>
+      <div class="scope">Same 4,000 updates/s. 0.15 MB = WebSocket connect/disconnect rows of 200 connections.</div>
+      <svg viewBox="0 0 400 260" role="img" aria-label="Commit-log growth: durable 24.75 MB, ephemeral 0.15 MB, relay 0.15 MB">
+        <line x1="40" y1="20" x2="40" y2="236" class="axis"/><line x1="40" y1="236" x2="390" y2="236" class="axis"/>
+        <line x1="40" y1="164" x2="390" y2="164" class="gridline"/><text x="36" y="167" text-anchor="end" class="lbl">10</text>
+        <line x1="40" y1="92" x2="390" y2="92" class="gridline"/><text x="36" y="95" text-anchor="end" class="lbl">20</text>
+        <text x="12" y="30" class="lbl">MB</text>
+        <rect x="70" y="57.8" width="70" height="178.2" rx="3" class="bad"/><text x="105" y="53" text-anchor="middle" class="val">24.75 MB</text>
+        <text x="105" y="252" text-anchor="middle" class="lbl">durable table</text>
+        <rect x="185" y="234.9" width="70" height="1.1" class="good"/><text x="220" y="228" text-anchor="middle" class="val">0.15 MB</text>
+        <text x="220" y="252" text-anchor="middle" class="lbl">ephemeral table</text>
+        <rect x="300" y="234.9" width="70" height="1.1" class="good"/><text x="335" y="228" text-anchor="middle" class="val">0.15 MB</text>
+        <text x="335" y="252" text-anchor="middle" class="lbl">relay channel</text>
+        <text x="260" y="130" text-anchor="middle" class="lbl">durable: 0.83 MB/s ≈ 71 GB/day</text>
+        <text x="260" y="146" text-anchor="middle" class="lbl">ephemeral &amp; relay: 0 B from traffic</text>
+      </svg>
+    </section>
+
+    <section class="card">
+      <h2>3 · Relay fan-out with AOI</h2>
+      <div class="scope">Deliveries per second (thousands), 20 Hz per client, 12-byte payload.</div>
+      <svg viewBox="0 0 400 260" role="img" aria-label="Relay deliveries per second for three cases">
+        <line x1="40" y1="20" x2="40" y2="236" class="axis"/><line x1="40" y1="236" x2="390" y2="236" class="axis"/>
+        <line x1="40" y1="176" x2="390" y2="176" class="gridline"/><text x="36" y="179" text-anchor="end" class="lbl">500k</text>
+        <line x1="40" y1="116" x2="390" y2="116" class="gridline"/><text x="36" y="119" text-anchor="end" class="lbl">1.0M</text>
+        <line x1="40" y1="56" x2="390" y2="56" class="gridline"/><text x="36" y="59" text-anchor="end" class="lbl">1.5M</text>
+        <!-- scale 120 px per 1M ; 58744 -> 7.0 ; 796040 -> 95.5 ; 1529710 -> 183.6 -->
+        <rect x="70" y="229" width="70" height="7" rx="2" class="bar50"/><text x="105" y="210" text-anchor="middle" class="val">58,744/s</text><text x="105" y="222" text-anchor="middle" class="lbl">P99 2.21 ms · 1 core</text>
+        <text x="105" y="252" text-anchor="middle" class="lbl">200 · 10×10 grid</text>
+        <rect x="185" y="140.5" width="70" height="95.5" rx="3" class="bar50"/><text x="220" y="124" text-anchor="middle" class="val">796,040/s</text><text x="220" y="136" text-anchor="middle" class="lbl">P99 6.25 ms · 8.7 cores</text>
+        <text x="220" y="252" text-anchor="middle" class="lbl">200 · one cell</text>
+        <rect x="300" y="52.4" width="70" height="183.6" rx="3" class="amber"/><text x="335" y="36" text-anchor="middle" class="val">1,529,710/s</text><text x="335" y="48" text-anchor="middle" class="lbl">P99 81 ms · 11.9 cores</text>
+        <text x="335" y="252" text-anchor="middle" class="lbl">1000 · grid (host-limited)</text>
+      </svg>
+    </section>
+  </div>
+
+  <div class="notes">
+    <div class="note"><b>Relay</b><br>14.7 recipients per publish on the grid at 1.04 / 2.21 ms P50/P99 for ~1 server core. The all-to-all cell (199 recipients) costs 8.7 cores for the same publish rate — size AOI cells for tens of neighbours, not hundreds.</div>
+    <div class="note"><b>Ephemeral</b><br>identical subscription fan-out (1.6 M rows/s), 0 bytes of commit log. Two open findings: idle single-call round trip 8–16 ms (R02-C1) and CPU/P99 at 200 subscribing clients (R03-200). Recorded, not fixed.</div>
+    <div class="note warn"><b>Read it correctly</b><br>QUICK tier: one host, one run, no warm-up window, no repetitions. The 1000-client row saturated the host and is not a relay ceiling. memBUS transport latency on 2.10.0 was not measured; R6 Build 12 remains the last accepted transport checkpoint.</div>
+  </div>
+
+  <table>
+    <thead><tr><th>Case</th><th>Clients</th><th>Rate</th><th>P50 ms</th><th>P95 ms</th><th>P99 ms</th><th>Server CPU</th><th>Commit log / 30 s</th></tr></thead>
+    <tbody>
+      <tr><td>Relay, 10×10 grid</td><td>200</td><td>58,744 deliveries/s</td><td>1.04</td><td>1.89</td><td>2.21</td><td>≈1.05 cores</td><td>150,945 B</td></tr>
+      <tr><td>Relay, one cell</td><td>200</td><td>796,040 deliveries/s</td><td>1.65</td><td>5.26</td><td>6.25</td><td>≈8.7 cores</td><td>150,945 B</td></tr>
+      <tr><td>Relay, 10×10 grid (host-limited)</td><td>1000</td><td>1,529,710 deliveries/s</td><td>20.0</td><td>—</td><td>81.1</td><td>≈11.9 cores</td><td>755,745 B</td></tr>
+      <tr><td>Reducer + subscriptions, ephemeral</td><td>200</td><td>4,000 tx/s · 1,598,722 rows/s</td><td>4.36</td><td>52.3</td><td>101.7</td><td>357.6 s</td><td>150,945 B</td></tr>
+      <tr><td>Reducer + subscriptions, durable</td><td>200</td><td>4,000 tx/s · 1,598,743 rows/s</td><td>9.54</td><td>15.1</td><td>18.7</td><td>133.3 s</td><td>24,745,575 B</td></tr>
+      <tr><td>Reducer + subscriptions, ephemeral</td><td>50</td><td>1,000 tx/s</td><td>1.30</td><td>16.7</td><td>17.9</td><td>21.2 s</td><td>37,545 B</td></tr>
+      <tr><td>Reducer + subscriptions, durable</td><td>50</td><td>1,000 tx/s</td><td>7.57</td><td>11.6</td><td>16.2</td><td>22.1 s</td><td>6,186,510 B</td></tr>
+    </tbody>
+  </table>
+  <div class="foot"><span>Source: fork benchmark report 2026-09-09 (private evidence); all values milliseconds unless stated.</span><span>2.10.0-R1 chart · September 9, 2026 · loopback WebSocket, no TLS</span></div>
+</div>
+</body>
+</html>

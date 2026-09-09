@@ -9,6 +9,8 @@ Material changes require proof appropriate to their layer:
 - focused static checks and tests;
 - real Windows cross-process transport where applicable;
 - real destination reducer and transaction outcomes;
+- real relay clients (raw WebSocket) against a running endpoint, including bound/rate/error paths and commit-log size proofs;
+- ephemeral restart contract (durable rows replayed, ephemeral rows absent) and the three-language module-schema equality test;
 - restart, authorization, duplicate and uncertainty cases;
 - graceful shutdown and state cleanup;
 - matched benchmark boundaries for performance claims;

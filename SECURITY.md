@@ -12,7 +12,9 @@ SpacetimeDB-memBUS is intended for trusted, colocated SpacetimeDB processes on o
 - admission, payload, retry and reconciliation state are bounded;
 - shared memory carries message data only, never live database objects or pointers;
 - invalid or incompatible input fails closed;
-- no automatic HTTP, TCP, named-pipe or coordinator fallback exists.
+- no automatic HTTP, TCP, named-pipe or coordinator fallback exists;
+- relay channels are allowlisted by name with explicit access mode, payload, rate, channel and subscriber bounds; the relay never executes a reducer other than the configured bridge reducer, which runs with the database identity as caller;
+- ephemeral tables change durability only; authorization, row-level security and subscription rules are unchanged.
 
 Do not broaden local object permissions, reuse security material across unrelated deployments, disable validation or expose the included demo as an Internet-ready service.
 
