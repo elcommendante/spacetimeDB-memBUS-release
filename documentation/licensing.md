@@ -1,6 +1,6 @@
 # Licensing and production deployment
 
-SpacetimeDB-memBUS 2.10.0-R1 is based on SpacetimeDB 2.10.0. The upstream work is distributed under the Business Source License 1.1 with an Additional Use Grant and a later change licence (change date 2031-09-03 for 2.10.0).
+SpacetimeDB-memBUS 2.10.0-R2 is based on SpacetimeDB 2.10.0. The upstream work is distributed under the Business Source License 1.1 with an Additional Use Grant and a later change licence (change date 2031-09-03 for 2.10.0).
 
 ## Production boundary
 

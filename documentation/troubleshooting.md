@@ -1,4 +1,4 @@
-# Troubleshooting — 2.10.0-R1 candidate
+# Troubleshooting — 2.10.0-R2 candidate
 
 ## Integrity fails
 

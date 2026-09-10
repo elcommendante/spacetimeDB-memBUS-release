@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>SpacetimeDB-memBUS 2.10.0-R1 — stock vs Ephemeral vs Relay</title>
+<title>SpacetimeDB-memBUS 2.10.0-R2 — stock vs Ephemeral vs Relay</title>
 <style>
   :root{ --bg:#0a0e17; --panel:#111827; --panel2:#0d1320; --grid:#26304a; --axis:#4b5872; --ink:#e8edf7; --dim:#9aa7c2;
          --stock:#f87171; --eph:#c4b5fd; --relay:#8b5cf6; }
@@ -28,7 +28,7 @@
 <div class="sheet">
   <header>
     <div>
-      <h1>SpacetimeDB-memBUS <span>2.10.0-R1 — stock SpacetimeDB vs Ephemeral vs Relay</span></h1>
+      <h1>SpacetimeDB-memBUS <span>2.10.0-R2 — stock SpacetimeDB vs Ephemeral vs Relay</span></h1>
       <div class="sub">One workload: 200 clients, each sending a position update at 20 Hz for 30 s, every client subscribed to the others. Lower is better.</div>
     </div>
     <div class="meta"><div>Campaign: <b>September 9, 2026 · QUICK tier</b></div><div>One host (20 logical CPUs) · one run · <b>no repetitions</b></div></div>
@@ -37,43 +37,43 @@
 
   <div class="grid">
     <section class="card"><h2>Latency P50, ms</h2>
-      <!-- scale: 200 px / 12 ms -->
+      <!-- scale: 200 px / 9.6 ms -->
       <svg viewBox="0 0 300 250"><line x1="20" y1="20" x2="20" y2="230" class="axis"/><line x1="20" y1="230" x2="290" y2="230" class="axis"/>
-        <rect x="40" y="71" width="60" height="159" rx="3" class="stock"/><text x="70" y="65" text-anchor="middle" class="val">9.5</text><text x="70" y="244" text-anchor="middle" class="lbl">Stock</text>
-        <rect x="125" y="157.3" width="60" height="72.7" rx="3" class="eph"/><text x="155" y="151" text-anchor="middle" class="val">4.4</text><text x="155" y="244" text-anchor="middle" class="lbl">Ephemeral</text>
-        <rect x="210" y="212.7" width="60" height="17.3" rx="3" class="relay"/><text x="240" y="206" text-anchor="middle" class="val">1.0</text><text x="240" y="244" text-anchor="middle" class="lbl">Relay</text></svg></section>
+        <rect x="40" y="48.2" width="60" height="181.8" rx="3" class="stock"/><text x="70" y="42" text-anchor="middle" class="val">8.7</text><text x="70" y="244" text-anchor="middle" class="lbl">Stock</text>
+        <rect x="125" y="168.4" width="60" height="61.6" rx="3" class="eph"/><text x="155" y="162" text-anchor="middle" class="val">3.0</text><text x="155" y="244" text-anchor="middle" class="lbl">Ephemeral</text>
+        <rect x="210" y="208.5" width="60" height="21.5" rx="3" class="relay"/><text x="240" y="202" text-anchor="middle" class="val">1.0</text><text x="240" y="244" text-anchor="middle" class="lbl">Relay</text></svg></section>
     <section class="card"><h2>Latency P99, ms</h2>
-      <!-- scale: 200 px / 110 ms -->
+      <!-- scale: 200 px / 19.5 ms -->
       <svg viewBox="0 0 300 250"><line x1="20" y1="20" x2="20" y2="230" class="axis"/><line x1="20" y1="230" x2="290" y2="230" class="axis"/>
-        <rect x="40" y="196" width="60" height="34" rx="3" class="stock"/><text x="70" y="190" text-anchor="middle" class="val">18.7</text><text x="70" y="244" text-anchor="middle" class="lbl">Stock</text>
-        <rect x="125" y="45.1" width="60" height="184.9" rx="3" class="eph"/><text x="155" y="39" text-anchor="middle" class="val">101.7 *</text><text x="155" y="244" text-anchor="middle" class="lbl">Ephemeral</text>
-        <rect x="210" y="226" width="60" height="4" rx="2" class="relay"/><text x="240" y="220" text-anchor="middle" class="val">2.2</text><text x="240" y="244" text-anchor="middle" class="lbl">Relay</text></svg></section>
+        <rect x="40" y="48.2" width="60" height="181.8" rx="3" class="stock"/><text x="70" y="42" text-anchor="middle" class="val">17.7</text><text x="70" y="244" text-anchor="middle" class="lbl">Stock</text>
+        <rect x="125" y="140.5" width="60" height="89.5" rx="3" class="eph"/><text x="155" y="135" text-anchor="middle" class="val">8.7</text><text x="155" y="244" text-anchor="middle" class="lbl">Ephemeral</text>
+        <rect x="210" y="209.8" width="60" height="20.2" rx="3" class="relay"/><text x="240" y="204" text-anchor="middle" class="val">2.0</text><text x="240" y="244" text-anchor="middle" class="lbl">Relay</text></svg></section>
     <section class="card"><h2>Server CPU, cores</h2>
-      <!-- scale: 200 px / 13 cores -->
+      <!-- scale: 200 px / 15.0 cores -->
       <svg viewBox="0 0 300 250"><line x1="20" y1="20" x2="20" y2="230" class="axis"/><line x1="20" y1="230" x2="290" y2="230" class="axis"/>
-        <rect x="40" y="162.3" width="60" height="67.7" rx="3" class="stock"/><text x="70" y="156" text-anchor="middle" class="val">4.4</text><text x="70" y="244" text-anchor="middle" class="lbl">Stock</text>
-        <rect x="125" y="46.9" width="60" height="183.1" rx="3" class="eph"/><text x="155" y="41" text-anchor="middle" class="val">11.9 *</text><text x="155" y="244" text-anchor="middle" class="lbl">Ephemeral</text>
-        <rect x="210" y="213.8" width="60" height="16.2" rx="3" class="relay"/><text x="240" y="207" text-anchor="middle" class="val">1.05</text><text x="240" y="244" text-anchor="middle" class="lbl">Relay</text></svg></section>
+        <rect x="40" y="174.2" width="60" height="55.8" rx="3" class="stock"/><text x="70" y="168" text-anchor="middle" class="val">4.2</text><text x="70" y="244" text-anchor="middle" class="lbl">Stock</text>
+        <rect x="125" y="48.2" width="60" height="181.8" rx="3" class="eph"/><text x="155" y="42" text-anchor="middle" class="val">13.7</text><text x="155" y="244" text-anchor="middle" class="lbl">Ephemeral</text>
+        <rect x="210" y="218.0" width="60" height="12.0" rx="3" class="relay"/><text x="240" y="212" text-anchor="middle" class="val">0.9</text><text x="240" y="244" text-anchor="middle" class="lbl">Relay</text></svg></section>
     <section class="card"><h2>Commit log written in 30 s, MB</h2>
-      <!-- scale: 200 px / 27 MB -->
+      <!-- scale: 200 px / 27.2 MB -->
       <svg viewBox="0 0 300 250"><line x1="20" y1="20" x2="20" y2="230" class="axis"/><line x1="20" y1="230" x2="290" y2="230" class="axis"/>
-        <rect x="40" y="46.7" width="60" height="183.3" rx="3" class="stock"/><text x="70" y="40" text-anchor="middle" class="val">24.75</text><text x="70" y="244" text-anchor="middle" class="lbl">Stock</text>
-        <rect x="125" y="228.9" width="60" height="1.1" class="eph"/><text x="155" y="222" text-anchor="middle" class="val">0.15</text><text x="155" y="244" text-anchor="middle" class="lbl">Ephemeral</text>
-        <rect x="210" y="228.9" width="60" height="1.1" class="relay"/><text x="240" y="222" text-anchor="middle" class="val">0.15</text><text x="240" y="244" text-anchor="middle" class="lbl">Relay</text></svg></section>
+        <rect x="40" y="48.2" width="60" height="181.8" rx="3" class="stock"/><text x="70" y="42" text-anchor="middle" class="val">24.74</text><text x="70" y="244" text-anchor="middle" class="lbl">Stock</text>
+        <rect x="125" y="228.9" width="60" height="1.1" rx="3" class="eph"/><text x="155" y="223" text-anchor="middle" class="val">0.15</text><text x="155" y="244" text-anchor="middle" class="lbl">Ephemeral</text>
+        <rect x="210" y="228.9" width="60" height="1.1" rx="3" class="relay"/><text x="240" y="223" text-anchor="middle" class="val">0.15</text><text x="240" y="244" text-anchor="middle" class="lbl">Relay</text></svg></section>
   </div>
 
   <table>
     <thead><tr><th></th><th>Stock SpacetimeDB<br>durable table, reducers, subscriptions</th><th>SpacetimeDB-memBUS-ephemeral<br>same reducers, ephemeral table</th><th>SpacetimeDB-memBUS-relay<br>relay channel with AOI</th></tr></thead>
     <tbody>
-      <tr><td>Latency P50</td><td>9.5 ms</td><td>4.4 ms</td><td><b>1.0 ms</b></td></tr>
-      <tr><td>Latency P99</td><td>18.7 ms</td><td>101.7 ms *</td><td><b>2.2 ms</b></td></tr>
-      <tr><td>Server CPU</td><td>4 cores</td><td>12 cores *</td><td><b>1 core</b></td></tr>
-      <tr><td>Commit log written in 30 s</td><td>24.75 MB (≈ 71 GB/day)</td><td><b>0 B</b> from traffic (0.15 MB = connection lifecycle rows)</td><td><b>0 B</b> from traffic</td></tr>
+      <tr><td>Latency P50</td><td>8.7 ms</td><td>3.0 ms</td><td><b>1.0 ms</b></td></tr>
+      <tr><td>Latency P99</td><td>17.7 ms</td><td>8.7 ms</td><td><b>2.0 ms</b></td></tr>
+      <tr><td>Server CPU</td><td>4 cores</td><td>14 cores *</td><td><b>1 core</b></td></tr>
+      <tr><td>Commit log written in 30 s</td><td>24.74 MB (≈ 71 GB/day)</td><td><b>0 B</b> from traffic (0.15 MB = connection lifecycle rows)</td><td><b>0 B</b> from traffic</td></tr>
       <tr><td>What a subscriber receives</td><td>every row</td><td>every row</td><td>rows from neighbours in AOI range (14.7 per publish)</td></tr>
     </tbody>
   </table>
-  <div class="note"><b>*</b> Known defect, not the design: an offset-less (ephemeral) commit does not wake the send path the way a durable commit does, so at 200 subscribing clients Ephemeral burns CPU and loses its tail (findings R02-C1, R03-200). At 50 clients Ephemeral is already faster than durable (P50 1.3 ms vs 7.6 ms) at equal CPU. Direction: adaptive listener on the commit → send path.</div>
-  <div class="foot"><span>Source: fork benchmark report 2026-09-09. memBUS transport latency was not re-measured on 2.10.0 (R6 Build 12 remains the last accepted transport checkpoint).</span><span>2.10.0-R1 chart · September 9, 2026 · loopback WebSocket, no TLS</span></div>
+  <div class="note"><b>*</b> Ephemeral fan-out of 1.6 M rows/s to 200 subscribers costs CPU (13.7 cores vs 4.2 durable): every subscriber receives every row, the pattern the relay replaces. The R1 wake-up defect (idle ephemeral call 8–16 ms, P99 102 ms at 200 clients) is fixed in R2: a single idle ephemeral reducer call now returns in 0.06 ms; at 50 clients Ephemeral is 0.70 ms P50 vs 7.0 ms durable.</div>
+  <div class="foot"><span>Source: fork benchmark runs 2026-09-10 on the 2.10.0-R2 binaries. Cross-database calls were re-measured on the same binaries (see Benchmarks).</span><span>2.10.0-R2 chart · September 10, 2026 · loopback WebSocket, no TLS</span></div>
 </div>
 </body>
 </html>

@@ -20,9 +20,9 @@ The project does not blindly merge a previous modified SpacetimeDB tree into a n
 |---|---|---|
 | `2.6.1-1` … `2.6.1-R6` | SpacetimeDB 2.6.1 | memBUS transport R1–R6 |
 | (private) | SpacetimeDB 2.8.3 | lane diagnosis, `fast` / `full-safety` channel profiles, database-to-database comparator |
-| `2.10.0-R1` | SpacetimeDB 2.10.0 | topology v5; **JWT key paths are mandatory** (`--jwt-pub-key-path`, `--jwt-priv-key-path`); **Ephemeral** tables; **Relay** channel with mandatory `--membus-relay-config`; relay-only build |
+| `2.10.0-R2` | SpacetimeDB 2.10.0 | topology v5; **JWT key paths are mandatory** (`--jwt-pub-key-path`, `--jwt-priv-key-path`); **Ephemeral** tables; **Relay** channel with mandatory `--membus-relay-config`; relay-only build |
 
-## Upgrading a database from a stock 2.6.1 / 2.8.3 standalone to 2.10.0-R1
+## Upgrading a database from a stock 2.6.1 / 2.8.3 standalone to 2.10.0-R2
 
 1. Stop the old process. Copy the data directory; keep the original untouched as rollback.
 2. Start the fork standalone on the copy with the **same JWT key pair** the old CLI used (`%LOCALAPPDATA%\SpacetimeDB\config\id_ecdsa[.pub]` for a stock install) so existing identities and tokens stay valid, plus a relay configuration file. The first start replays the commit log and rewrites `metadata.toml` to the new version; a 192,024-transaction game-world database replayed without intervention in the reference migration.

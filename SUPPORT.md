@@ -15,4 +15,4 @@ Never attach bearer tokens, capability files, private keys, complete database di
 
 For a timeout or unknown memBUS result, do not assume success or failure and do not create an unrelated replacement operation blindly. Preserve the package state and include the observable result in the report.
 
-State clearly that the report concerns the 2.10.0-R1 Windows x64 test candidate. Project-lead testing, the approval-only six-hour soak and final release acceptance remain pending.
+State clearly that the report concerns the 2.10.0-R2 Windows x64 test candidate. Project-lead testing, the approval-only six-hour soak and final release acceptance remain pending.

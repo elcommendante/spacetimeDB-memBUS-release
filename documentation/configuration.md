@@ -1,4 +1,4 @@
-# Configuration — 2.10.0-R1 candidate
+# Configuration — 2.10.0-R2 candidate
 
 Two explicit files configure a fork endpoint. Neither has defaults; a missing file, unknown key or inconsistent value fails startup.
 

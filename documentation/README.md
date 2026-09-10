@@ -1,6 +1,6 @@
 # SpacetimeDB-memBUS public documentation
 
-**Current candidate:** `2.10.0-R1`, Windows x64, SpacetimeDB v2.10.0 — one fork build with three components: **SpacetimeDB-memBUS** (shared-memory transport), **SpacetimeDB-memBUS-ephemeral** (ephemeral tables) and **SpacetimeDB-memBUS-relay** (relay channel). Automated clean-package verification has passed; project-lead testing, final acceptance and the six-hour soak remain pending.
+**Current candidate:** `2.10.0-R2`, Windows x64, SpacetimeDB v2.10.0 — one fork build with three components: **SpacetimeDB-memBUS** (shared-memory transport), **SpacetimeDB-memBUS-ephemeral** (ephemeral tables) and **SpacetimeDB-memBUS-relay** (relay channel). Automated clean-package verification has passed; project-lead testing, final acceptance and the six-hour soak remain pending.
 
 - [Getting started](getting-started.md) — package verification, start, the three tests, stop and reset.
 - [Architecture](architecture.md) — process boundaries and what each component owns.
@@ -11,7 +11,7 @@
 - [Commands](commands.md) — package, standalone, security utility, module and sample operations.
 - [Delivery and security](protocol.md) — stable public behaviour of the three lanes.
 - [Operations](operations.md) — lifecycle, recovery, reconciliation and failure handling.
-- [Benchmarks](benchmarks.md) — 2.10.0-R1 ephemeral/relay campaign, R6 transport checkpoint, caveats.
+- [Benchmarks](benchmarks.md) — 2.10.0-R2 ephemeral/relay campaign, R6 transport checkpoint, caveats.
 - [MMORPG use case](mmorpg-use-case.md) — persistence/gameplay/coordinator boundary and what moved to Ephemeral + Relay.
 - [Troubleshooting](troubleshooting.md) — typed failures and package diagnostics.
 - [Development](development.md) — public quality and verification model.

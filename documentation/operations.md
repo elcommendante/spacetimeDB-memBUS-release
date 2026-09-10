@@ -2,7 +2,7 @@
 
 ## Candidate package lifecycle
 
-The 2.10.0-R1 archive and adjacent checksum have passed automated clean-extraction verification and are prepared for controlled project-lead testing. They remain test-candidate assets until the project lead accepts the package and the separately gated six-hour soak is completed.
+The 2.10.0-R2 archive and adjacent checksum have passed automated clean-extraction verification and are prepared for controlled project-lead testing. They remain test-candidate assets until the project lead accepts the package and the separately gated six-hour soak is completed.
 
 ```text
 verify immutable files

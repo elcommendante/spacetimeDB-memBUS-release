@@ -1,4 +1,4 @@
-# Command reference — 2.10.0-R1 candidate
+# Command reference — 2.10.0-R2 candidate
 
 Run these commands from PowerShell in the extracted package directory. The package is a controlled Windows x64 test candidate, not a production release.
 

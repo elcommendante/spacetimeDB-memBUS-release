@@ -8,42 +8,45 @@
 | **SpacetimeDB-memBUS-ephemeral** | *ephemeral tables*: a table attribute that keeps rows in server RAM with full transactions, indexes and subscriptions but **never writes them to the commit log**; empty after a restart by contract; durable → ephemeral migration of an existing table by a normal publish | *memBUS-ephemeral* |
 | **SpacetimeDB-memBUS-relay** | *relay channel*: a non-transactional broadcast lane on the existing client WebSocket with named channels, area-of-interest (AOI) fan-out, per-connection rate limits and an optional server-side bridge reducer; **0 bytes of durability per message** | *memBUS-relay* |
 
-memBUS-ephemeral and memBUS-relay do not need the memBUS transport. The `2.10.0-R1` package contains the full product build (all three) and a relay-only build (Ephemeral + Relay on a single database process).
+memBUS-ephemeral and memBUS-relay do not need the memBUS transport. The `2.10.0-R2` package contains the full product build (all three) and a relay-only build (Ephemeral + Relay on a single database process).
 
 **Scope of memBUS: databases on the same machine only.** memBUS connects independent SpacetimeDB processes that run on one Windows host, in the same interactive logon session, through named shared memory. It is not a network transport, has no listener, and never falls back to HTTP, TCP or named pipes. Databases on different machines are out of scope by design. memBUS-ephemeral and memBUS-relay are per-process features and have no such placement requirement.
 
 > [!WARNING]
-> **2026-09-09 — 2.10.0-R1 is a Windows x64 test candidate on SpacetimeDB v2.10.0.** It has passed automated clean-package verification (two-process committed memBUS calls, relay/ephemeral end-to-end checks, restart contract, graceful shutdown). Project-lead testing, the six-hour soak and final release acceptance remain pending. It is not production-ready.
+> **2026-09-10 — 2.10.0-R2 is a Windows x64 test candidate on SpacetimeDB v2.10.0.** It has passed automated clean-package verification (two-process committed memBUS calls, relay/ephemeral end-to-end checks, restart contract, graceful shutdown). Project-lead testing, the six-hour soak and final release acceptance remain pending. It is not production-ready.
 
-> **Current candidate:** `2.10.0-R1` — Windows x64, SpacetimeDB v2.10.0. Previous candidate: `2.6.1-R6` (SpacetimeDB v2.6.1), kept in [CHANGELOG.md](CHANGELOG.md).
+> **Current candidate:** `2.10.0-R2` — Windows x64, SpacetimeDB v2.10.0. Previous candidate: `2.6.1-R6` (SpacetimeDB v2.6.1), kept in [CHANGELOG.md](CHANGELOG.md).
 
 > **Production licensing notice:** SpacetimeDB 2.10.0 is distributed under the Business Source License 1.1. Its Additional Use Grant permits an application or service to use no more than **one SpacetimeDB instance in production** and excludes use as a Database Service. memBUS is designed for multiple independent instances, so a production multi-instance topology requires a commercial licence or another applicable arrangement from Clockwork Laboratories. memBUS-ephemeral and memBUS-relay on a single instance stay inside the grant only if the rest of your deployment does. Review [`LICENSE.txt`](LICENSE.txt), the [upstream licence](https://github.com/clockworklabs/SpacetimeDB/blob/v2.10.0/LICENSE.txt), and obtain qualified advice.
 
-## What 2.10.0-R1 measured
+## What 2.10.0-R2 measured
 
 Workload: 200 clients, each sending a position update at 20 Hz for 30 s, every client subscribed to all the others. One host, 20 logical CPUs, one run (QUICK tier: regression evidence, not a guarantee).
 
-![Stock SpacetimeDB vs SpacetimeDB-memBUS-ephemeral vs SpacetimeDB-memBUS-relay](documentation/assets/spacetimedb-membus-2.10.0-r1-stock-vs-ephemeral-vs-relay.png)
+![Stock SpacetimeDB vs SpacetimeDB-memBUS-ephemeral vs SpacetimeDB-memBUS-relay](documentation/assets/spacetimedb-membus-2.10.0-r2-stock-vs-ephemeral-vs-relay.png)
 
 | | Stock SpacetimeDB<br>(durable table, reducers, subscriptions) | SpacetimeDB-memBUS-ephemeral<br>(same reducers, ephemeral table) | SpacetimeDB-memBUS-relay<br>(relay channel with AOI) |
 |---|---:|---:|---:|
-| Latency P50 | 9.5 ms | 4.4 ms | **1.0 ms** |
-| Latency P99 | 18.7 ms | 101.7 ms * | **2.2 ms** |
-| Server CPU | 4 cores | 12 cores * | **1 core** |
-| Commit log written in 30 s | 24.75 MB (≈ 71 GB/day) | **0 B** | **0 B** |
+| Latency P50 | 8.7 ms | 3.0 ms | **1.0 ms** |
+| Latency P99 | 17.7 ms | 8.7 ms | **2.0 ms** |
+| Server CPU | 4 cores | 14 cores * | **1 core** |
+| Commit log written in 30 s | 24.74 MB (≈ 71 GB/day) | **0 B** | **0 B** |
 | What a subscriber receives | every row | every row | rows from neighbours in AOI range (14.7 per publish) |
 
-\* Known defect, not the design: an offset-less commit does not wake the send path the way a durable commit does (findings R02-C1 and R03-200 in [Benchmarks](documentation/benchmarks.md)). At 50 clients the ephemeral table is already faster than durable (P50 1.3 ms vs 7.6 ms) at equal CPU.
+\* Fan-out cost, not a defect: at 200 clients every subscriber receives every row (1.6 M rows/s), which is exactly what the relay's AOI avoids. The R1 send-path wake-up defect is fixed in R2: an idle single ephemeral reducer call dropped from 15.9 ms to 0.06 ms, the 200-client P99 from 101.7 ms to 8.7 ms; at 50 clients the ephemeral table is 0.70 ms P50 versus 7.0 ms durable (findings and the before/after rows in [Benchmarks](documentation/benchmarks.md)).
 
-Cross-database calls, memBUS versus the stock alternative (HTTP from a procedure on loopback). R6 Build 12 on SpacetimeDB 2.6.1, not re-measured on 2.10.0:
+Cross-database calls on 2.10.0-R2, memBUS versus the stock alternative (a procedure calling the other database over HTTP on loopback). Same host, same fixture, fresh databases per repetition, median of three repetitions, two-byte payload, closed loop:
 
 | | Stock (HTTP from procedure) | SpacetimeDB-memBUS |
 |---|---:|---:|
-| Transport P50 / P99 | 0.167 / 0.294 ms | **0.025 / 0.046 ms** |
-| Full call with destination commit P50 / P99 | 0.408 / 0.778 ms | **0.120 / 0.225 ms** |
-| Throughput, 32 routes × 32 concurrent | 89 k ops/s | **104 k ops/s** |
+| Full call with destination commit, 1 client, P50 / P99 | 1.30 / 2.06 ms | **0.58 / 0.81 ms** |
+| Same, 8 concurrent clients, P50 / P99 | 1.56 / 2.59 ms | **0.68 / 0.93 ms** |
+| Throughput, 32 operations per call × 8 concurrent | 89 k ops/s | **108 k ops/s** |
+| Throughput, 32 operations per call × 32 concurrent | collapses (port exhaustion, 95 failed calls) | **110 k ops/s** |
 
-Interactive chart: [2.10.0-R1](documentation/db-membus-2.10.0-r1-ephemeral-relay-chart.html). Methodology, all rows and caveats: [Benchmarks](documentation/benchmarks.md).
+The ingress floor (a procedure that returns immediately) is 0.43 / 0.54 ms P50 / P99 on this host, so memBUS adds about 0.15 ms to a call that commits on the other database; HTTP adds about 0.9 ms and opens a new TCP connection per call, which is what exhausts the dynamic port range at 32 × 32. The HTTP column needs a benchmark-only server build (stock SpacetimeDB refuses loopback HTTP from procedures); it is not shipped.
+
+Interactive chart: [2.10.0-R2](documentation/db-membus-2.10.0-r2-ephemeral-relay-chart.html). Methodology, all rows and caveats: [Benchmarks](documentation/benchmarks.md).
 
 ## Why it exists
 
@@ -63,7 +66,7 @@ SpacetimeDB-memBUS was created for **my MMORPG project**, which uses colocated d
 
 ## Release package quick start
 
-The local package assembly and `dist` directory are ignored by the public repository. Download the separately published test-candidate asset, verify its adjacent SHA-256 file, extract it, then run from the extracted `2.10.0-R1` folder:
+The local package assembly and `dist` directory are ignored by the public repository. Download the separately published test-candidate asset, verify its adjacent SHA-256 file, extract it, then run from the extracted `2.10.0-R2` folder:
 
 ```powershell
 Set-ExecutionPolicy -Scope Process Bypass
@@ -110,11 +113,11 @@ A single-process memBUS-ephemeral + memBUS-relay endpoint without the memBUS tra
 
 - **R1–R6 (SpacetimeDB 2.6.1):** shared-memory proof of concept → matched measurement → authenticated routes → bounded uncertainty and recovery → multi-route operations → compact operations (see the history chart).
 - **2.8.3 port:** lane diagnosis, `fast`/`full-safety` channel profiles, database-to-database comparator (private evidence).
-- **2.10.0-R1:** port to SpacetimeDB v2.10.0 plus **SpacetimeDB-memBUS-ephemeral** and **SpacetimeDB-memBUS-relay**.
+- **2.10.0-R2:** port to SpacetimeDB v2.10.0 plus **SpacetimeDB-memBUS-ephemeral** and **SpacetimeDB-memBUS-relay**.
 
 ## Remaining acceptance work
 
-- project-lead extracted-package test of 2.10.0-R1;
+- project-lead extracted-package test of 2.10.0-R2;
 - six-hour soak, only with explicit approval;
 - RELEASE-tier repetition of the ephemeral/relay campaign on a dedicated host (the 1000-client row is host-limited);
 - root cause of two open anomalies (idle ephemeral reducer round trip 8–16 ms; ephemeral CPU/P99 at 200 subscribing clients);

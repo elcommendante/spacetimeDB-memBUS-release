@@ -38,7 +38,7 @@ TypeScript modules: the module-definition section is emitted by the shared codeg
 
 A new module with ephemeral tables publishes like any module. The validator rejects `ephemeral` on an event table, on a scheduled table, or on a name that does not exist.
 
-**Existing durable table → ephemeral (2.10.0-R1):** add the attribute and publish. The automatic migration plan lists
+**Existing durable table → ephemeral (2.10.0-R2):** add the attribute and publish. The automatic migration plan lists
 
 ```text
 Changed table player_movement_segment_live becomes ephemeral (existing rows cleared; rows are no longer written to the commit log)
@@ -48,7 +48,7 @@ The step runs inside the publish transaction: all rows are cleared (they are liv
 
 **Ephemeral → durable** is rejected (`ChangeTableEphemeralFlag`): there is no durable history to restore; create a new durable table, move consumers, drop the old one.
 
-Real run recorded for 2.10.0-R1: one publish flipped 13 live tables of a game-world database that had replayed 192,024 transactions from a previous version; `st_ephemeral_table` afterwards listed 14 ids.
+Real run recorded for 2.10.0-R2: one publish flipped 13 live tables of a game-world database that had replayed 192,024 transactions from a previous version; `st_ephemeral_table` afterwards listed 14 ids.
 
 ## Verifying
 
@@ -70,7 +70,7 @@ Commit-log growth: compare the size of the data-directory commit-log segments be
 
 Closed-loop write cost with no subscribers: ephemeral needs less server CPU per transaction at every concurrency (0.55 vs 2.59 s at C1, 4.75 vs 9.08 s at C32) and 0 B of disk per transaction versus ~205 B durable.
 
-Open anomalies (recorded, not fixed): an *idle* client calling an ephemeral-only reducer sees 8–16 ms round trips versus 3 ms durable (a wake-up that a durable commit provides and an offset-less commit does not; under load the ephemeral path is faster), and at 200 subscribing clients the ephemeral variant used 2.7× the CPU of the durable one with a worse P99. Direction agreed for the next build: an adaptive listener on the commit → send path. Use ephemeral tables for high-rate state and the relay for presentation traffic; do not expect a single low-rate ephemeral reducer call to beat 3 ms yet.
+Cost model (2.10.0-R2 measurements): an idle client calling an ephemeral-only reducer gets its result in about 0.06 ms (16,000 closed-loop calls/s on one connection); at 200 subscribing clients the ephemeral table delivers the same 1.6 M rows/s as the durable one at 3.0 / 8.7 ms P50 / P99 instead of 8.7 / 17.7 ms, but spends about three times the CPU, because every subscriber still receives every row. Use ephemeral tables for high-rate authoritative state and the relay channel with AOI for presentation traffic. The R1 wake-up anomaly (8–16 ms idle calls) was a send-worker timer defect and is fixed in R2.
 
 ## Operational notes
 

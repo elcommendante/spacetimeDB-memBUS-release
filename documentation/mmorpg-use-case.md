@@ -90,7 +90,7 @@ See [`MMORPG_MEMBUS_TOPOLOGY.svg`](../MMORPG_MEMBUS_TOPOLOGY.svg). Solid nodes a
 
 ## Performance evidence
 
-Ephemeral + Relay (2.10.0-R1, QUICK tier): 200 players at 20 Hz cost ~1 server core and 1 ms P50 through the relay with AOI, versus 4–12 cores, 4–100 ms and (durable) 71 GB/day through reducers and zone subscriptions. See [Ephemeral tables](ephemeral-tables.md), [Relay channel](relay-channel.md) and [Benchmarks](benchmarks.md).
+Ephemeral + Relay (2.10.0-R2, QUICK tier): 200 players at 20 Hz cost ~1 server core and 1 ms P50 through the relay with AOI, versus 4–12 cores, 4–100 ms and (durable) 71 GB/day through reducers and zone subscriptions. See [Ephemeral tables](ephemeral-tables.md), [Relay channel](relay-channel.md) and [Benchmarks](benchmarks.md).
 
 memBUS transport (R6 Build 12, SpacetimeDB 2.6.1): the [R6 benchmark chart](db-membus-benchmark-chart.html), [R1-R6 history](db-membus-release-history-chart.html) and [methodology](benchmarks.md) keep transport-only and full-transaction boundaries separate:
 

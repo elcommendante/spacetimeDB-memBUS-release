@@ -1,4 +1,4 @@
-# Getting started with the 2.10.0-R1 candidate
+# Getting started with the 2.10.0-R2 candidate
 
 ## Requirements
 
@@ -14,7 +14,7 @@ The archive is a controlled test candidate. Do not run from inside the ZIP. Unbl
 ## Verify
 
 ```powershell
-Set-Location <extract-root>\2.10.0-R1
+Set-Location <extract-root>\2.10.0-R2
 Set-ExecutionPolicy -Scope Process Bypass
 .\Test-PackageIntegrity.ps1
 ```
