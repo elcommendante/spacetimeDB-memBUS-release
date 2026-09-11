@@ -33,7 +33,7 @@ max_publish_per_second = 30           # token bucket per connection; excess -> R
 max_channels_per_connection = 4       # more -> RelayError TooManyChannels
 
 [channels."zone/*"]                   # wildcard entry
-access = "authenticated"              # or "anyone"
+access = "authenticated"              # or "table" (see below)
 cell_size = 3000.0                    # AOI grid cell edge in application units
 max_subscribers = 2000                # -> RelayError ChannelFull
 crowd_threshold = 60                  # members per cell above which delivery is thinned
@@ -49,9 +49,19 @@ neighbor_divisor = 4
 [channels."zone/hub".bridge]          # optional: server-side snapshot into the module
 reducer = "relay_ingest"              # must exist in the published module
 interval_ms = 1000
+
+[channels."zone/members"]             # table admission
+access = "table"
+membership_table = "relay_membership" # required with access = "table", rejected with any other rule
+cell_size = 3000.0
+max_subscribers = 2000
+crowd_threshold = 60
+neighbor_divisor = 4
 ```
 
 The package ships this exact file as `config/relay.toml` and its tests assert the limits. A channel a client names that matches no entry is rejected with `UnknownChannel`; an entry with no matching module reducer makes the bridge log an error per interval instead of silently skipping.
+
+`access = "table"` admits an identity only while the module table named by `membership_table` holds a row for it. That table needs a column `identity` of type `Identity` and a column `channel` of type `String`; the row must name the exact channel (`zone/z1`), never a wildcard. Missing row → `RelayError NotAMember` on subscribe and on publish; deleting the row in a committed transaction unsubscribes the client (it gets `NotAMember`, its neighbours get `RelayLeave`). If the module has no such table, or the columns are absent or mistyped, the server logs an error and rejects the channel with `ChannelDenied` — it never falls back to `authenticated`.
 
 ## 3. JWT keys (2.10.0 requirement)
 
